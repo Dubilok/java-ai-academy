@@ -55,11 +55,35 @@ so plainly and mark the task `[~]` in progress with a note — an honest partial
 - Update §7 if the schema changed, §8 if the API changed, and add an ADR under `docs/adr/` if you made
   an architectural decision.
 
-### 6. Report back
+### 6. Commit
+Stage and commit all changes introduced by this task — code, tests, and the CLAUDE.md update together.
+
+Commit message format:
+```
+<type>(<scope>): <short imperative summary>   ← 72 chars max
+
+Task: <task-id>
+
+- <bullet: what was added/changed and why, one line each>
+- <bullet: …>
+- <bullet: …>
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+```
+
+Rules:
+- `type` follows Conventional Commits: `feat`, `fix`, `test`, `chore`, `docs`, `refactor`.
+- `scope` is the epic area: `auth`, `sandbox`, `catalog`, `ai`, `frontend`, `plugin`, `infra`, `ci`, etc.
+- Bullets describe *what changed and why*, not just what files were touched.
+- Stage specific files by name — never `git add -A` or `git add .`.
+- If nothing secret was introduced and `./gradlew spotlessApply build` is green, commit. Do not ask for confirmation.
+
+### 7. Report back
 Keep it short:
 - **Done:** what now works that didn't before
 - **Files:** created / modified
 - **Verified by:** the exact command(s) run and their result
+- **Committed:** the one-line commit summary
 - **Notes:** anything surprising, any debt taken on deliberately
 - **Next:** the next `[ ]` task in the roadmap
 

@@ -4,7 +4,7 @@
 > It is Claude's persistent memory across sessions. Read it fully before doing any work.
 > Every completed task, decision, and blocker is recorded here — not in chat history.
 
-**Status:** Bootstrapped (Epic E0 in progress) · **Last updated:** 2026-07-23 · **Doc version:** 1.0
+**Status:** E1 in progress · **Last updated:** 2026-07-23 · **Doc version:** 1.0
 
 ---
 
@@ -436,7 +436,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E0-T6 ADR-0001 (record decisions) and ADR-0002 (modular monolith) written
 
 ### E1 — Backend core: persistence & auth
-- [ ] E1-T1 Gradle Kotlin DSL build, version catalog, Spring Boot 3.3 skeleton, `/actuator/health` returns UP
+- [x] E1-T1 Gradle Kotlin DSL build, version catalog, Spring Boot 3.3 skeleton, `/actuator/health` returns UP
 - [ ] E1-T2 Liquibase master changelog + `001-initial-schema.xml` (all tables in §7) with rollbacks
 - [ ] E1-T3 JPA entities + repositories; Testcontainers Postgres test proves every mapping loads
 - [ ] E1-T4 `POST /auth/register` + `/auth/login`: BCrypt(12), JWT issue, integration-tested
@@ -612,6 +612,7 @@ cd ide-plugin
 | 2026-07-23 | E0-T4 | ⚠️ | `infra/docker-compose.yml` written but not started — needs a local Docker run to verify |
 | 2026-07-23 | E0-T5 | ⚠️ | `.github/workflows/ci.yml` written; will fail until E1/E7 produce buildable projects |
 | 2026-07-23 | E0-T6 | ✅ | ADR-0001 (decision log) and ADR-0002 (modular monolith over microservices) |
+| 2026-07-23 | E1-T1 | ✅ | Gradle 8.11.1 wrapper, version catalog, Spring Boot 3.3.6 skeleton, virtual threads; `ActuatorHealthTest` passes |
 
 ---
 

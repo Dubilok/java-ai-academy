@@ -1,0 +1,18 @@
+spring:
+  threads:
+    virtual:
+      enabled: true
+  application:
+    name: java-ai-academy
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
