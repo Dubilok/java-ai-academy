@@ -1,9 +1,20 @@
 spring:
+  application:
+    name: java-ai-academy
   threads:
     virtual:
       enabled: true
-  application:
-    name: java-ai-academy
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/javaacademy}
+    username: ${SPRING_DATASOURCE_USERNAME:academy}
+    password: ${SPRING_DATASOURCE_PASSWORD:academy}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  flyway:
+    locations: classpath:db/migration
 
 server:
   port: 8080

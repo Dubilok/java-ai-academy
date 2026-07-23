@@ -214,7 +214,7 @@ java-ai-academy/
 | Language (backend) | Java | 21 LTS | Records, sealed types, pattern matching, virtual threads |
 | Framework | Spring Boot | 3.3.x | Web MVC on virtual threads; not WebFlux |
 | Persistence | Spring Data JPA + Hibernate | 6.x | No `@ManyToMany`; explicit join entities |
-| Migrations | Liquibase | 4.27+ | XML master, one changeset per file, never edit an applied changeset |
+| Migrations | Flyway | 10.x (BOM-managed) | SQL files under `db/migration/`, never edit an applied migration |
 | DB | PostgreSQL | 16 | `gen_random_uuid()` via pgcrypto; pgvector if RAG stays local |
 | Cache/queue | Redis | 7 | Sessions, rate limits, submission queue |
 | Sandbox | docker-java | 3.4.x | Talks to the host Docker daemon |
@@ -269,8 +269,8 @@ java-ai-academy/
 
 ### 5.4 Database & migrations
 
-- Every schema change is a **new** Liquibase changeset file under `db/changelog/changes/NNN-description.xml`. Never edit an applied changeset — write a follow-up.
-- Every changeset needs a `rollback` block.
+- Every schema change is a **new** versioned SQL file under `db/migration/V{n}__{description}.sql`. Never edit an applied migration — add a new version instead.
+- Flyway CE has no rollback mechanism; write forward-only compensating migrations (`V{n}__revert_xxx.sql`) when an applied migration must be undone.
 - `snake_case` names; plural tables; PK `id UUID`; FKs `<entity>_id` with an explicit `ON DELETE` policy.
 - Index every FK and every column used in a `WHERE` that runs per request.
 - No business logic in triggers or stored procedures.
@@ -353,7 +353,7 @@ erDiagram
     INTERVIEW_QUESTIONS ||--o{ INTERVIEW_ANSWERS : answered_as
 ```
 
-**Core tables** (full DDL lives in Liquibase; this is the summary):
+**Core tables** (full DDL lives in `db/migration/V1__initial_schema.sql`; this is the summary):
 
 | Table | Key columns | Notes |
 |---|---|---|
@@ -437,7 +437,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 
 ### E1 — Backend core: persistence & auth
 - [x] E1-T1 Gradle Kotlin DSL build, version catalog, Spring Boot 3.3 skeleton, `/actuator/health` returns UP
-- [ ] E1-T2 Liquibase master changelog + `001-initial-schema.xml` (all tables in §7) with rollbacks
+- [~] E1-T2 Flyway migration `V1__initial_schema.sql` (all 12 tables in §7) — code complete, tests blocked by Docker overlay2 read-only filesystem; restart Docker Desktop then run `./gradlew test`
 - [ ] E1-T3 JPA entities + repositories; Testcontainers Postgres test proves every mapping loads
 - [ ] E1-T4 `POST /auth/register` + `/auth/login`: BCrypt(12), JWT issue, integration-tested
 - [ ] E1-T5 Refresh-token rotation with reuse detection
@@ -613,6 +613,7 @@ cd ide-plugin
 | 2026-07-23 | E0-T5 | ⚠️ | `.github/workflows/ci.yml` written; will fail until E1/E7 produce buildable projects |
 | 2026-07-23 | E0-T6 | ✅ | ADR-0001 (decision log) and ADR-0002 (modular monolith over microservices) |
 | 2026-07-23 | E1-T1 | ✅ | Gradle 8.11.1 wrapper, version catalog, Spring Boot 3.3.6 skeleton, virtual threads; `ActuatorHealthTest` passes |
+| 2026-07-23 | E1-T2 | ⚠️ | Flyway V1: 12 tables, 15 indexes, FK policies per §7; compiles but tests blocked — Docker overlay2 read-only, needs Docker Desktop restart |
 
 ---
 

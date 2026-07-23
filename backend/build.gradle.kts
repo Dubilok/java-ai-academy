@@ -21,9 +21,16 @@ repositories {
 dependencies {
     implementation(libs.spring.boot.starter.web)
     implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.spring.boot.starter.data.jpa)
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.postgresql)
     implementation(libs.jspecify)
+    runtimeOnly(libs.postgresql)
 
     testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.spring.boot.testcontainers)
+    testImplementation(libs.testcontainers.junit5)
+    testImplementation(libs.testcontainers.postgresql)
 }
 
 tasks.withType<Test> {

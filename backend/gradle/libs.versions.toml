@@ -19,8 +19,9 @@ spring-boot-starter-validation = { module = "org.springframework.boot:spring-boo
 spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
 
 # Database
-postgresql    = { module = "org.postgresql:postgresql" }
-liquibase-core = { module = "org.liquibase:liquibase-core" }
+postgresql         = { module = "org.postgresql:postgresql" }
+flyway-core        = { module = "org.flywaydb:flyway-core" }
+flyway-postgresql  = { module = "org.flywaydb:flyway-database-postgresql" }
 
 # Auth
 jjwt-api     = { module = "io.jsonwebtoken:jjwt-api",     version.ref = "jjwt" }
@@ -35,7 +36,8 @@ docker-java-transport = { module = "com.github.docker-java:docker-java-transport
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 
 # Testing
-spring-boot-starter-test  = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-starter-test      = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-testcontainers    = { module = "org.springframework.boot:spring-boot-testcontainers" }
 archunit-junit5           = { module = "com.tngtech.archunit:archunit-junit5",  version.ref = "archunit" }
 testcontainers-junit5     = { module = "org.testcontainers:junit-jupiter",      version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql",         version.ref = "testcontainers" }
