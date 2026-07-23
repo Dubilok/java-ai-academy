@@ -1,0 +1,38 @@
+# --- secrets ---
+.env
+.env.local
+*.pem
+*.key
+
+# --- Java / Gradle ---
+build/
+out/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+*.log
+bin/
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+next-env.d.ts
+coverage/
+playwright-report/
+test-results/
+.turbo/
+
+# --- IntelliJ plugin ---
+ide-plugin/build/
+.intellijPlatform/
+
+# --- IDE / OS ---
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- runtime scratch ---
+/tmp/sandbox/
+*.pid
