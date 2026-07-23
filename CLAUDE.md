@@ -240,7 +240,7 @@ java-ai-academy/
 
 - **Constructor injection only.** No `@Autowired` on fields. Prefer `final` fields.
 - **Records for DTOs**, request bodies, and value objects. Entities are classes.
-- **No Lombok on entities.** Elsewhere, only `@Slf4j` and `@RequiredArgsConstructor` are permitted — nothing that generates equals/hashCode/toString.
+- **Lombok on entities:** only `@Getter` and `@Setter` (with `@Setter(AccessLevel.NONE)` on the `id` field). Never `@Data`, `@EqualsAndHashCode`, `@ToString`, or `@Builder` on entities — all cause JPA problems. Elsewhere, `@Slf4j` and `@RequiredArgsConstructor` are also permitted.
 - **Controllers are thin**: validate, delegate, map. No business logic, no repository access.
 - **Never return entities from a controller.** Map to a DTO — an entity leak is how a `password_hash` reaches a browser.
 - **Exceptions:** domain exceptions extend `ApiException` (in `common`); one `@RestControllerAdvice` maps them to RFC 7807 `ProblemDetail`. Never swallow an exception; never `catch (Exception e) { }`.
@@ -438,7 +438,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 ### E1 — Backend core: persistence & auth
 - [x] E1-T1 Gradle Kotlin DSL build, version catalog, Spring Boot 3.3 skeleton, `/actuator/health` returns UP
 - [~] E1-T2 Flyway migration `V1__initial_schema.sql` (all 12 tables in §7) — code complete, tests blocked by Docker overlay2 read-only filesystem; restart Docker Desktop then run `./gradlew test`
-- [ ] E1-T3 JPA entities + repositories; Testcontainers Postgres test proves every mapping loads
+- [~] E1-T3 JPA entities + repositories; Testcontainers Postgres test proves every mapping loads — code complete, tests blocked by Docker overlay2 read-only filesystem; restart Docker Desktop then run `./gradlew test`
 - [ ] E1-T4 `POST /auth/register` + `/auth/login`: BCrypt(12), JWT issue, integration-tested
 - [ ] E1-T5 Refresh-token rotation with reuse detection
 - [ ] E1-T6 `SecurityFilterChain`: public/student/admin rules; test asserts 401 and 403 paths
@@ -614,6 +614,7 @@ cd ide-plugin
 | 2026-07-23 | E0-T6 | ✅ | ADR-0001 (decision log) and ADR-0002 (modular monolith over microservices) |
 | 2026-07-23 | E1-T1 | ✅ | Gradle 8.11.1 wrapper, version catalog, Spring Boot 3.3.6 skeleton, virtual threads; `ActuatorHealthTest` passes |
 | 2026-07-23 | E1-T2 | ⚠️ | Flyway V1: 12 tables, 15 indexes, FK policies per §7; compiles but tests blocked — Docker overlay2 read-only, needs Docker Desktop restart |
+| 2026-07-23 | E1-T3 | ⚠️ | 12 JPA entities + repositories across 4 feature packages with Lombok `@Getter @Setter`; `JpaMappingTest` covers all 12 entity types; blocked by same Docker overlay2 issue |
 
 ---
 

@@ -34,6 +34,7 @@ docker-java-transport = { module = "com.github.docker-java:docker-java-transport
 
 # Utilities
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+lombok   = { module = "org.projectlombok:lombok" }
 
 # Testing
 spring-boot-starter-test      = { module = "org.springframework.boot:spring-boot-starter-test" }
