@@ -509,7 +509,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E2-T3 `user_progress` upsert + attempt counting
 - [x] E2-T4 XP/level/crystal rules in one `GamificationService`; idempotent award test
 - [x] E2-T5 `/me` and `/me/progress` aggregates
-- [ ] E2-T6 Seed data: one hand-written course, 3 lectures, 5 tasks with real JUnit tests
+- [x] E2-T6 Seed data: one hand-written course, 3 lectures, 5 tasks with real JUnit tests
 
 ### E3 — Docker sandbox engine
 - [ ] E3-T1 `sandbox-image/Dockerfile` on `openjdk:21-slim` + JUnit Console jar, pinned by digest, built by script
@@ -686,6 +686,7 @@ cd ide-plugin
 | 2026-07-24 | E2-T3 | ✅ | `ProgressService.recordAttempt()` upserts `user_progress`, increments attempts every call, transitions IN_PROGRESS→PASSED on first pass only (returns `true` for first pass, `false` otherwise for idempotent XP award); `STATUS_PASSED/STATUS_IN_PROGRESS` constants public for use by E2-T4; 9 unit tests (ProgressServiceTest) covering all 6 state transitions + null code + findProgress; 9 `@DataJpaTest` Testcontainers tests (UserProgressRepositoryTest) covering UNIQUE constraint, cascade delete, field persistence, null submittedCode; 148 tests pass |
 | 2026-07-24 | E2-T4 | ✅ | `GamificationService.awardTaskCompletion(userId, taskId)` adds `task.xpReward` XP + 1 crystal to user on first pass; `calculateLevel(xpPoints)` uses `min(50, floor(sqrt(xpPoints/100))+1)` formula; wired into `ProgressService.recordAttempt` — gamification fires only when `firstPass=true`; 10 unit tests (GamificationServiceTest) covering XP award, crystal award, user-not-found, and 6 level thresholds; 2 new ProgressServiceTest cases prove award fires once and never on repeat pass; 168 tests pass |
 | 2026-07-24 | E2-T5 | ✅ | `GET /api/v1/me` returns profile (id, email, role, xpPoints, crystals, level, streak=0, createdAt); `GET /api/v1/me/progress` returns per-course completion (totalTasks, passedTasks, completionPercent via JPQL COUNT queries); `MeService` + `MeController`; 3 DTOs; `XpCalculator` util; fixed `SecurityFilterChainTest` (added missing `@MockBean MeService` + updated 2 assertions now that MeController handles /me); 8 unit tests (MeServiceTest) + 4 slice tests (MeControllerTest); all tests pass |
+| 2026-07-24 | E2-T6 | ✅ | `V4__seed_data.sql`: Java 21 Fundamentals course (published), 1 module, 3 lectures (Strings, Control Flow, Methods), 5 tasks with template/test/solution code; dollar-quoted DO block avoids escaping Java code in SQL; `SeedDataTest` (9 tests) verifies counts, ordering, and code fields; `FlywayMigrationTest` updated to expect 4 migrations; all tests pass |
 
 ---
 
