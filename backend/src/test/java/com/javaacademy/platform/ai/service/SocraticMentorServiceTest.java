@@ -145,6 +145,82 @@ class SocraticMentorServiceTest {
         }));
     }
 
+    // ── anti-leak guard ────────────────────────────────────────────────────────
+
+    @Test
+    void generateHint_cleanHint_returnsWithoutRetry() {
+        when(llmClient.complete(argThat(request -> request != null)))
+                .thenReturn(new LlmResponse("What does the error mean?", 20, 15));
+
+        String hint = service.generateHint(hintRequest("return 0;", "AssertionError"));
+
+        assertThat(hint).isEqualTo("What does the error mean?");
+        verify(llmClient).complete(argThat(request -> request != null));
+    }
+
+    @Test
+    void generateHint_firstHintLeaks_retriesOnce() {
+        String leakyHint = "Here is the solution:\n```java\n"
+                + "double dx = x1 - x2;\n"
+                + "double dy = y1 - y2;\n"
+                + "double d = Math.sqrt(dx*dx + dy*dy);\n"
+                + "return d;\n"
+                + "```\n";
+        String cleanRetryHint = "What mathematical operation produces a positive distance from a difference?";
+
+        when(llmClient.complete(argThat(request -> request != null)))
+                .thenReturn(new LlmResponse(leakyHint, 40, 80))
+                .thenReturn(new LlmResponse(cleanRetryHint, 30, 25));
+
+        String hint = service.generateHint(hintRequest("return 0;", "AssertionError"));
+
+        assertThat(hint).isEqualTo(cleanRetryHint);
+    }
+
+    @Test
+    void generateHint_retryPrompt_includesLeakWarning() {
+        String leakyHint =
+                "Solution:\n```java\ndouble dx = x1 - x2;\ndouble dy = y1 - y2;\ndouble d = Math.sqrt(dx*dx);\nreturn d;\n```";
+
+        when(llmClient.complete(argThat(request -> request != null)))
+                .thenReturn(new LlmResponse(leakyHint, 40, 80))
+                .thenReturn(new LlmResponse("What is the formula?", 30, 10));
+
+        service.generateHint(hintRequest("return 0;", "error"));
+
+        verify(llmClient, org.mockito.Mockito.times(2)).complete(argThat(request -> request != null));
+        verify(llmClient)
+                .complete(argThat((LlmRequest request) -> request.userPrompt().contains("CRITICAL VIOLATION")));
+    }
+
+    @Test
+    void generateHint_bothLeaky_returnsCannedHint() {
+        String leakyHint =
+                "Here:\n```java\ndouble dx = x;\ndouble dy = y;\ndouble sum = dx*dx + dy*dy;\nreturn Math.sqrt(sum);\n```";
+
+        when(llmClient.complete(argThat(request -> request != null)))
+                .thenReturn(new LlmResponse(leakyHint, 40, 80))
+                .thenReturn(new LlmResponse(leakyHint, 40, 80));
+
+        String hint = service.generateHint(hintRequest("return 0;", "error"));
+
+        assertThat(hint).isEqualTo(SocraticMentorService.CANNED_HINT);
+    }
+
+    @Test
+    void generateHint_bothLeaky_doesNotCallLlmMoreThanTwice() {
+        String leakyHint =
+                "Here:\n```java\ndouble dx = x;\ndouble dy = y;\ndouble sum = dx*dx + dy*dy;\nreturn Math.sqrt(sum);\n```";
+
+        when(llmClient.complete(argThat(request -> request != null)))
+                .thenReturn(new LlmResponse(leakyHint, 40, 80))
+                .thenReturn(new LlmResponse(leakyHint, 40, 80));
+
+        service.generateHint(hintRequest("return 0;", "error"));
+
+        verify(llmClient, org.mockito.Mockito.times(2)).complete(argThat(request -> request != null));
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────
 
     private static HintRequest hintRequest(String studentSource, String errorOutput) {

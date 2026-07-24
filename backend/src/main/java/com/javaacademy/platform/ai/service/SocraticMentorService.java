@@ -4,6 +4,7 @@ import com.javaacademy.platform.ai.client.LlmClient;
 import com.javaacademy.platform.ai.client.LlmRequest;
 import com.javaacademy.platform.ai.client.LlmResponse;
 import com.javaacademy.platform.ai.dto.HintRequest;
+import com.javaacademy.platform.ai.util.HintLeakDetector;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,10 @@ public class SocraticMentorService {
     static final int MAX_HINT_TOKENS = 512;
     static final int MAX_CODE_CHARS = 4096;
     static final int MAX_ERROR_CHARS = 2048;
+
+    static final String CANNED_HINT = "Let's take a step back. What does the error message tell you about "
+            + "what the compiler or test is expecting? Try reading the error line by line — "
+            + "what is the first thing that surprises you about it?";
 
     private final LlmClient llmClient;
     private final String systemPrompt;
@@ -43,7 +48,10 @@ public class SocraticMentorService {
      * Generates a Socratic hint grounded in the task description, student's code, and the
      * compiler/test error output from their last failed submission.
      *
-     * <p>The model is instructed to ask guiding questions — never to emit solution code.
+     * <p>Applies an anti-leak guard: if the response appears to contain solution code (code
+     * fence with more than {@link HintLeakDetector#MAX_SUBSTANTIVE_LINES} substantive lines),
+     * it retries once with a stricter instruction. If the retry also leaks, it returns a
+     * safe {@link #CANNED_HINT} instead.
      */
     public String generateHint(HintRequest hintRequest) {
         String userPrompt = buildUserPrompt(hintRequest);
@@ -53,9 +61,43 @@ public class SocraticMentorService {
                 hintRequest.studentSource() != null
                         ? hintRequest.studentSource().length()
                         : 0);
+
+        String firstHint = callLlm(userPrompt);
+
+        if (!HintLeakDetector.containsSolutionCode(firstHint)) {
+            return firstHint;
+        }
+
+        log.warn(
+                "Hint for task '{}' appears to contain solution code — retrying with stricter instruction",
+                hintRequest.taskTitle());
+        String stricterPrompt = appendLeakWarning(userPrompt, firstHint);
+        String retryHint = callLlm(stricterPrompt);
+
+        if (!HintLeakDetector.containsSolutionCode(retryHint)) {
+            return retryHint;
+        }
+
+        log.error(
+                "Hint retry for task '{}' still contains solution code — returning canned hint",
+                hintRequest.taskTitle());
+        return CANNED_HINT;
+    }
+
+    private String callLlm(String userPrompt) {
         LlmRequest request = new LlmRequest(null, systemPrompt, userPrompt, MAX_HINT_TOKENS);
         LlmResponse response = llmClient.complete(request);
         return response.content();
+    }
+
+    private static String appendLeakWarning(String originalPrompt, String leakyHint) {
+        return originalPrompt + "\n\n"
+                + "CRITICAL VIOLATION: Your previous response contained what appears to be "
+                + "solution code inside a code block with multiple lines of Java logic:\n\n"
+                + leakyHint + "\n\n"
+                + "Rewrite your response with ONLY Socratic questions. "
+                + "No code blocks. No method implementations. No return statements. "
+                + "Only 1-2 guiding questions that help the student think, not copy.";
     }
 
     private String buildUserPrompt(HintRequest hintRequest) {
