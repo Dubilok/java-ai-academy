@@ -264,7 +264,7 @@ Sub-package conventions within a feature:
 | DB | PostgreSQL | 16 | `gen_random_uuid()` via pgcrypto; pgvector if RAG stays local |
 | Cache/queue | Redis | 7 | Sessions, rate limits, submission queue |
 | Sandbox | docker-java | 3.4.x | Talks to the host Docker daemon |
-| Runner image | `openjdk:21-slim` + JUnit Platform Console | 1.10.x | Built once, pinned by digest |
+| Runner image | `eclipse-temurin:21-jdk-jammy` + JUnit Platform Console Standalone | 1.10.3 | `openjdk:21-slim` retired; eclipse-temurin is the maintained replacement. Image pinned by digest in `sandbox-image/Dockerfile`. |
 | Build | Gradle Kotlin DSL | 8.x | Version catalog in `gradle/libs.versions.toml` |
 | Testing | JUnit 5, AssertJ, Testcontainers, MockMvc, ArchUnit | — | Testcontainers for every DB/Redis/Docker test |
 | Static analysis | SpotBugs (plugin 5.2.5, tool 4.8.6) | — | Runs as part of `check`; exclude filter at `backend/config/spotbugs-exclude.xml` |
@@ -512,8 +512,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E2-T6 Seed data: one hand-written course, 3 lectures, 5 tasks with real JUnit tests
 
 ### E3 — Docker sandbox engine
-- [ ] E3-T1 `sandbox-image/Dockerfile` on `openjdk:21-slim` + JUnit Console jar, pinned by digest, built by script
-- [ ] E3-T2 `DockerCodeExecutionService`: materialise workdir, compile, run, collect result
+- [x] E3-T1 `sandbox-image/Dockerfile` on `eclipse-temurin:21-jdk-jammy` (digest-pinned) + JUnit Console Standalone 1.10.3 (sha256-verified), built by `sandbox-image/build.sh`
+- [x] E3-T2 `DockerCodeExecutionService`: materialise workdir, compile, run, collect result
 - [ ] E3-T3 Apply **every** hardening flag in §6.2; a test asserts each one is set on the container config
 - [ ] E3-T4 Timeout + hard kill + guaranteed cleanup in `finally`; leak test runs 50 submissions and asserts 0 containers remain
 - [ ] E3-T5 Parse JUnit XML into `ExecutionResult(status, failedTests, logs, durationMs)`
@@ -687,6 +687,8 @@ cd ide-plugin
 | 2026-07-24 | E2-T4 | ✅ | `GamificationService.awardTaskCompletion(userId, taskId)` adds `task.xpReward` XP + 1 crystal to user on first pass; `calculateLevel(xpPoints)` uses `min(50, floor(sqrt(xpPoints/100))+1)` formula; wired into `ProgressService.recordAttempt` — gamification fires only when `firstPass=true`; 10 unit tests (GamificationServiceTest) covering XP award, crystal award, user-not-found, and 6 level thresholds; 2 new ProgressServiceTest cases prove award fires once and never on repeat pass; 168 tests pass |
 | 2026-07-24 | E2-T5 | ✅ | `GET /api/v1/me` returns profile (id, email, role, xpPoints, crystals, level, streak=0, createdAt); `GET /api/v1/me/progress` returns per-course completion (totalTasks, passedTasks, completionPercent via JPQL COUNT queries); `MeService` + `MeController`; 3 DTOs; `XpCalculator` util; fixed `SecurityFilterChainTest` (added missing `@MockBean MeService` + updated 2 assertions now that MeController handles /me); 8 unit tests (MeServiceTest) + 4 slice tests (MeControllerTest); all tests pass |
 | 2026-07-24 | E2-T6 | ✅ | `V4__seed_data.sql`: Java 21 Fundamentals course (published), 1 module, 3 lectures (Strings, Control Flow, Methods), 5 tasks with template/test/solution code; dollar-quoted DO block avoids escaping Java code in SQL; `SeedDataTest` (9 tests) verifies counts, ordering, and code fields; `FlywayMigrationTest` updated to expect 4 migrations; all tests pass |
+| 2026-07-24 | E3-T1 | ✅ | `sandbox-image/Dockerfile` on `eclipse-temurin:21-jdk-jammy` pinned by digest (sha256:9d8dcf99…); JUnit Platform Console Standalone 1.10.3 sha256-verified at build time; non-root user uid=1000; `build.sh` builds image, verifies `java -version` under all §6.2 flags, confirms jar present, asserts no leaked containers; `openjdk:21-slim` noted as retired in §4 + README |
+| 2026-07-24 | E3-T2 | ✅ | `DockerCodeExecutionService` implements `CodeExecutionEngine`; all §6.2 flags in `buildHostConfig`; `FrameCollector` (non-deprecated `ResultCallbackTemplate`) caps logs at 64KB; `Semaphore` for bounded concurrency; cleanup in `finally` (removeQuietly + deleteWorkDir); `SandboxConfig` bean wires `ApacheDockerHttpClient`; `SandboxProperties` @ConfigurationProperties; 14 unit tests (Mockito RETURNS_SELF for fluent docker-java builders); all tests pass |
 
 ---
 

@@ -28,6 +28,8 @@ dependencies {
     implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)
     implementation(libs.jspecify)
+    implementation(libs.docker.java.core)
+    implementation(libs.docker.java.transport)
     implementation(libs.jjwt.api)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)

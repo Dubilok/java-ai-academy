@@ -9,7 +9,7 @@
     -->
     <Match>
         <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
-        <Package name="~com\.javaacademy\.platform\.(auth|catalog|progress|interview|ai)(\..+)?"/>
+        <Package name="~com\.javaacademy\.platform\.(auth|catalog|progress|interview|ai|sandbox)(\..+)?"/>
     </Match>
 
     <!-- Spring @Configuration classes use inheritance patterns SpotBugs flags -->

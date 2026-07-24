@@ -21,6 +21,11 @@ app:
     secret: ${JWT_SECRET:change-me-dev-only-secret-at-least-32-chars!!}
     access-token-expiry-ms: 900000
     refresh-token-expiry-days: 30
+  sandbox:
+    image: ${SANDBOX_IMAGE:java-ai-academy/runner:21}
+    memory-bytes: 134217728       # 128 MB
+    timeout-seconds: 5
+    max-concurrent: 8
 
 server:
   port: 8080
