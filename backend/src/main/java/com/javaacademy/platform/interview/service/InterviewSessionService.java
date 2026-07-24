@@ -1,8 +1,12 @@
 package com.javaacademy.platform.interview.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javaacademy.platform.auth.entity.User;
 import com.javaacademy.platform.auth.repository.UserRepository;
 import com.javaacademy.platform.common.ApiException;
+import com.javaacademy.platform.interview.dto.EvaluationReport;
+import com.javaacademy.platform.interview.dto.FinishSessionResponse;
 import com.javaacademy.platform.interview.dto.QuestionInSession;
 import com.javaacademy.platform.interview.dto.StartSessionRequest;
 import com.javaacademy.platform.interview.dto.StartSessionResponse;
@@ -39,6 +43,8 @@ public class InterviewSessionService {
     private final InterviewQuestionRepository questionRepository;
     private final InterviewAnswerRepository answerRepository;
     private final UserRepository userRepository;
+    private final MockInterviewerService mockInterviewerService;
+    private final ObjectMapper objectMapper;
     private final Clock clock;
 
     @Transactional
@@ -128,6 +134,44 @@ public class InterviewSessionService {
                 .toList();
 
         return pickRandom(preferred.isEmpty() ? candidates : preferred);
+    }
+
+    @Transactional
+    public FinishSessionResponse finishSession(UUID sessionId, String userEmail) {
+        User user = requireUser(userEmail);
+
+        InterviewSession session = sessionRepository
+                .findByIdAndUser_Id(sessionId, user.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Session not found: " + sessionId));
+
+        if (session.getStatus() == InterviewSessionStatus.FINISHED) {
+            throw new ApiException(HttpStatus.CONFLICT, "Session " + sessionId + " is already finished");
+        }
+
+        List<InterviewAnswer> answers = answerRepository.findBySessionIdWithQuestionOrderByCreatedAt(sessionId);
+
+        EvaluationReport report = mockInterviewerService.evaluate(answers, sessionId, session.getTechnology());
+
+        session.setStatus(InterviewSessionStatus.FINISHED);
+        session.setScore(report.overallScore());
+        session.setReportJson(serializeReport(report));
+
+        log.info(
+                "Finished interview session {} for user {} overall-score={}",
+                sessionId,
+                user.getId(),
+                report.overallScore());
+        return new FinishSessionResponse(sessionId, InterviewSessionStatus.FINISHED, report.overallScore(), report);
+    }
+
+    private String serializeReport(EvaluationReport report) {
+        try {
+            return objectMapper.writeValueAsString(report);
+        } catch (JsonProcessingException serializationException) {
+            throw new ApiException(
+                    org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to serialize evaluation report: " + serializationException.getMessage());
+        }
     }
 
     private User requireUser(String userEmail) {

@@ -7,9 +7,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.javaacademy.platform.auth.entity.User;
 import com.javaacademy.platform.auth.repository.UserRepository;
 import com.javaacademy.platform.common.ApiException;
+import com.javaacademy.platform.interview.dto.EvaluationDimension;
+import com.javaacademy.platform.interview.dto.EvaluationReport;
+import com.javaacademy.platform.interview.dto.FinishSessionResponse;
 import com.javaacademy.platform.interview.dto.StartSessionRequest;
 import com.javaacademy.platform.interview.dto.StartSessionResponse;
 import com.javaacademy.platform.interview.dto.SubmitAnswerRequest;
@@ -45,6 +50,7 @@ class InterviewSessionServiceTest {
     InterviewQuestionRepository questionRepository;
     InterviewAnswerRepository answerRepository;
     UserRepository userRepository;
+    MockInterviewerService mockInterviewerService;
     InterviewSessionService service;
 
     User mockUser;
@@ -57,10 +63,17 @@ class InterviewSessionServiceTest {
         questionRepository = mock(InterviewQuestionRepository.class);
         answerRepository = mock(InterviewAnswerRepository.class);
         userRepository = mock(UserRepository.class);
+        mockInterviewerService = mock(MockInterviewerService.class);
         Clock fixedClock = Clock.fixed(Instant.parse("2026-07-25T10:00:00Z"), ZoneOffset.UTC);
 
         service = new InterviewSessionService(
-                sessionRepository, questionRepository, answerRepository, userRepository, fixedClock);
+                sessionRepository,
+                questionRepository,
+                answerRepository,
+                userRepository,
+                mockInterviewerService,
+                new ObjectMapper().registerModule(new JavaTimeModule()),
+                fixedClock);
 
         mockUser = mock(User.class);
         when(mockUser.getId()).thenReturn(USER_ID);
@@ -219,6 +232,63 @@ class InterviewSessionServiceTest {
         assertThat(response.nextQuestion().difficulty()).isEqualTo(InterviewDifficulty.INTERMEDIATE);
     }
 
+    // ── finishSession ──────────────────────────────────────────────────────────
+
+    @Test
+    void finishSession_activeSession_finishesAndReturnsReport() {
+        InterviewSession session = activeSession(question1);
+        when(sessionRepository.findByIdAndUser_Id(SESSION_ID, USER_ID)).thenReturn(Optional.of(session));
+        when(answerRepository.findBySessionIdWithQuestionOrderByCreatedAt(SESSION_ID))
+                .thenReturn(List.of());
+
+        EvaluationReport stubbedReport = stubbedReport(75);
+        when(mockInterviewerService.evaluate(any(), any(), any())).thenReturn(stubbedReport);
+
+        FinishSessionResponse response = service.finishSession(SESSION_ID, USER_EMAIL);
+
+        assertThat(response.sessionId()).isEqualTo(SESSION_ID);
+        assertThat(response.status()).isEqualTo(InterviewSessionStatus.FINISHED);
+        assertThat(response.overallScore()).isEqualTo(75);
+        assertThat(response.report()).isEqualTo(stubbedReport);
+    }
+
+    @Test
+    void finishSession_persistsFinishedStatusAndScore() {
+        InterviewSession session = activeSession(question1);
+        when(sessionRepository.findByIdAndUser_Id(SESSION_ID, USER_ID)).thenReturn(Optional.of(session));
+        when(answerRepository.findBySessionIdWithQuestionOrderByCreatedAt(SESSION_ID))
+                .thenReturn(List.of());
+        when(mockInterviewerService.evaluate(any(), any(), any())).thenReturn(stubbedReport(60));
+
+        service.finishSession(SESSION_ID, USER_EMAIL);
+
+        assertThat(session.getStatus()).isEqualTo(InterviewSessionStatus.FINISHED);
+        assertThat(session.getScore()).isEqualTo(60);
+        assertThat(session.getReportJson()).isNotBlank();
+    }
+
+    @Test
+    void finishSession_alreadyFinishedSession_throws409() {
+        InterviewSession finishedSession = activeSession(question1);
+        finishedSession.setStatus(InterviewSessionStatus.FINISHED);
+        when(sessionRepository.findByIdAndUser_Id(SESSION_ID, USER_ID)).thenReturn(Optional.of(finishedSession));
+
+        assertThatThrownBy(() -> service.finishSession(SESSION_ID, USER_EMAIL))
+                .isInstanceOf(ApiException.class)
+                .extracting("status")
+                .isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void finishSession_sessionNotFound_throws404() {
+        when(sessionRepository.findByIdAndUser_Id(SESSION_ID, USER_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.finishSession(SESSION_ID, USER_EMAIL))
+                .isInstanceOf(ApiException.class)
+                .extracting("status")
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
     @Test
     void submitAnswer_withNullScores_retainsCurrentDifficulty() {
         // All scores null (no scoring yet from E6-T4) → stay at current difficulty
@@ -238,6 +308,22 @@ class InterviewSessionServiceTest {
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────
+
+    private EvaluationReport stubbedReport(int overallScore) {
+        List<EvaluationDimension> dimensions = List.of(
+                new EvaluationDimension("technicalAccuracy", overallScore, "Good."),
+                new EvaluationDimension("depthOfKnowledge", overallScore, "Good."),
+                new EvaluationDimension("practicalApplication", overallScore, "Good."),
+                new EvaluationDimension("communicationClarity", overallScore, "Good."),
+                new EvaluationDimension("breadthOfCoverage", overallScore, "Good."),
+                new EvaluationDimension("exampleQuality", overallScore, "Good."),
+                new EvaluationDimension("problemSolvingApproach", overallScore, "Good."),
+                new EvaluationDimension("edgeCaseAwareness", overallScore, "Good."),
+                new EvaluationDimension("modernJavaAwareness", overallScore, "Good."),
+                new EvaluationDimension("learningPotential", overallScore, "Good."));
+        return new EvaluationReport(
+                SESSION_ID, TECHNOLOGY, overallScore, dimensions, Instant.parse("2026-07-25T10:00:00Z"));
+    }
 
     private InterviewQuestion makeQuestion(UUID id, String questionText, InterviewDifficulty difficulty) {
         InterviewQuestion question = new InterviewQuestion();

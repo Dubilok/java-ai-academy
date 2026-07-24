@@ -1,5 +1,6 @@
 package com.javaacademy.platform.interview.controller;
 
+import com.javaacademy.platform.interview.dto.FinishSessionResponse;
 import com.javaacademy.platform.interview.dto.StartSessionRequest;
 import com.javaacademy.platform.interview.dto.StartSessionResponse;
 import com.javaacademy.platform.interview.dto.SubmitAnswerRequest;
@@ -37,5 +38,10 @@ public class InterviewSessionController {
             @Valid @RequestBody SubmitAnswerRequest request,
             Authentication authentication) {
         return sessionService.submitAnswer(sessionId, request, authentication.getName());
+    }
+
+    @PostMapping("/{sessionId}/finish")
+    public FinishSessionResponse finishSession(@PathVariable UUID sessionId, Authentication authentication) {
+        return sessionService.finishSession(sessionId, authentication.getName());
     }
 }

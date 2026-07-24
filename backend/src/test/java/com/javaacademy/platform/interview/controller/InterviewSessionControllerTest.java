@@ -11,6 +11,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javaacademy.platform.auth.service.JwtService;
 import com.javaacademy.platform.common.ApiException;
 import com.javaacademy.platform.config.SecurityConfig;
+import com.javaacademy.platform.interview.dto.EvaluationDimension;
+import com.javaacademy.platform.interview.dto.EvaluationReport;
+import com.javaacademy.platform.interview.dto.FinishSessionResponse;
 import com.javaacademy.platform.interview.dto.QuestionInSession;
 import com.javaacademy.platform.interview.dto.StartSessionRequest;
 import com.javaacademy.platform.interview.dto.StartSessionResponse;
@@ -19,6 +22,8 @@ import com.javaacademy.platform.interview.dto.SubmitAnswerResponse;
 import com.javaacademy.platform.interview.enums.InterviewDifficulty;
 import com.javaacademy.platform.interview.enums.InterviewSessionStatus;
 import com.javaacademy.platform.interview.service.InterviewSessionService;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -163,5 +168,67 @@ class InterviewSessionControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new SubmitAnswerRequest("My answer."))))
                 .andExpect(status().isConflict());
+    }
+
+    // ── POST /interview/sessions/{id}/finish ───────────────────────────────────
+
+    @Test
+    void finishSession_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(post("/api/v1/interview/sessions/{id}/finish", SESSION_ID))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "student@example.com", roles = "STUDENT")
+    void finishSession_validRequest_returns200WithReport() throws Exception {
+        EvaluationReport report = stubbedReport(SESSION_ID, 78);
+        FinishSessionResponse response =
+                new FinishSessionResponse(SESSION_ID, InterviewSessionStatus.FINISHED, 78, report);
+        when(sessionService.finishSession(eq(SESSION_ID), any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/interview/sessions/{id}/finish", SESSION_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionId").value(SESSION_ID.toString()))
+                .andExpect(jsonPath("$.status").value("FINISHED"))
+                .andExpect(jsonPath("$.overallScore").value(78))
+                .andExpect(jsonPath("$.report.dimensions").isArray())
+                .andExpect(jsonPath("$.report.dimensions.length()").value(10));
+    }
+
+    @Test
+    @WithMockUser(username = "student@example.com", roles = "STUDENT")
+    void finishSession_alreadyFinished_returns409() throws Exception {
+        when(sessionService.finishSession(eq(SESSION_ID), any()))
+                .thenThrow(new ApiException(HttpStatus.CONFLICT, "Session already finished"));
+
+        mockMvc.perform(post("/api/v1/interview/sessions/{id}/finish", SESSION_ID))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(username = "student@example.com", roles = "STUDENT")
+    void finishSession_sessionNotFound_returns404() throws Exception {
+        when(sessionService.finishSession(eq(SESSION_ID), any()))
+                .thenThrow(new ApiException(HttpStatus.NOT_FOUND, "Session not found"));
+
+        mockMvc.perform(post("/api/v1/interview/sessions/{id}/finish", SESSION_ID))
+                .andExpect(status().isNotFound());
+    }
+
+    // ── helpers ────────────────────────────────────────────────────────────────
+
+    private static EvaluationReport stubbedReport(UUID sessionId, int overallScore) {
+        List<EvaluationDimension> dimensions = List.of(
+                new EvaluationDimension("technicalAccuracy", overallScore, "Good."),
+                new EvaluationDimension("depthOfKnowledge", overallScore, "Good."),
+                new EvaluationDimension("practicalApplication", overallScore, "Good."),
+                new EvaluationDimension("communicationClarity", overallScore, "Good."),
+                new EvaluationDimension("breadthOfCoverage", overallScore, "Good."),
+                new EvaluationDimension("exampleQuality", overallScore, "Good."),
+                new EvaluationDimension("problemSolvingApproach", overallScore, "Good."),
+                new EvaluationDimension("edgeCaseAwareness", overallScore, "Good."),
+                new EvaluationDimension("modernJavaAwareness", overallScore, "Good."),
+                new EvaluationDimension("learningPotential", overallScore, "Good."));
+        return new EvaluationReport(sessionId, "Java", overallScore, dimensions, Instant.parse("2026-07-25T10:00:00Z"));
     }
 }
