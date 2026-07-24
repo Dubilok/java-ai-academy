@@ -32,7 +32,7 @@ public final class DockerCodeExecutionService implements CodeExecutionEngine {
 
     static final String JUNIT_JAR = "/opt/junit-platform-console-standalone.jar";
     static final String CONTAINER_WORK_DIR = "/work";
-    private static final long LOG_CAP_BYTES = 65_536L;
+    static final long LOG_CAP_BYTES = 65_536L;
 
     private final DockerClient dockerClient;
     private final SandboxProperties properties;

@@ -514,7 +514,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 ### E3 — Docker sandbox engine
 - [x] E3-T1 `sandbox-image/Dockerfile` on `eclipse-temurin:21-jdk-jammy` (digest-pinned) + JUnit Console Standalone 1.10.3 (sha256-verified), built by `sandbox-image/build.sh`
 - [x] E3-T2 `DockerCodeExecutionService`: materialise workdir, compile, run, collect result
-- [ ] E3-T3 Apply **every** hardening flag in §6.2; a test asserts each one is set on the container config
+- [x] E3-T3 Apply **every** hardening flag in §6.2; a test asserts each one is set on the container config
 - [ ] E3-T4 Timeout + hard kill + guaranteed cleanup in `finally`; leak test runs 50 submissions and asserts 0 containers remain
 - [ ] E3-T5 Parse JUnit XML into `ExecutionResult(status, failedTests, logs, durationMs)`
 - [ ] E3-T6 Redis-backed submission queue + worker with bounded concurrency
@@ -689,6 +689,7 @@ cd ide-plugin
 | 2026-07-24 | E2-T6 | ✅ | `V4__seed_data.sql`: Java 21 Fundamentals course (published), 1 module, 3 lectures (Strings, Control Flow, Methods), 5 tasks with template/test/solution code; dollar-quoted DO block avoids escaping Java code in SQL; `SeedDataTest` (9 tests) verifies counts, ordering, and code fields; `FlywayMigrationTest` updated to expect 4 migrations; all tests pass |
 | 2026-07-24 | E3-T1 | ✅ | `sandbox-image/Dockerfile` on `eclipse-temurin:21-jdk-jammy` pinned by digest (sha256:9d8dcf99…); JUnit Platform Console Standalone 1.10.3 sha256-verified at build time; non-root user uid=1000; `build.sh` builds image, verifies `java -version` under all §6.2 flags, confirms jar present, asserts no leaked containers; `openjdk:21-slim` noted as retired in §4 + README |
 | 2026-07-24 | E3-T2 | ✅ | `DockerCodeExecutionService` implements `CodeExecutionEngine`; all §6.2 flags in `buildHostConfig`; `FrameCollector` (non-deprecated `ResultCallbackTemplate`) caps logs at 64KB; `Semaphore` for bounded concurrency; cleanup in `finally` (removeQuietly + deleteWorkDir); `SandboxConfig` bean wires `ApacheDockerHttpClient`; `SandboxProperties` @ConfigurationProperties; 14 unit tests (Mockito RETURNS_SELF for fluent docker-java builders); all tests pass |
+| 2026-07-24 | E3-T3 | ✅ | `SandboxHardeningTest` (15 tests): one test per §6.2 flag — networkMode=none, memory=128MB, memorySwap=memory, cpuQuota=50% of period, pidsLimit=64, readonlyRootfs=true, capDrop=ALL, securityOpts=no-new-privileges, tmpfs=/tmp noexec, workdir bind mount, user=1000:0 (via verify), LOG_CAP_BYTES=64KB, timeout=5s; `LOG_CAP_BYTES` promoted to package-private for test access; all tests pass |
 
 ---
 
