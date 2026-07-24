@@ -118,4 +118,54 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
+
+    // ── /auth/refresh ─────────────────────────────────────────────────────────
+
+    @Test
+    void refresh_withValidToken_returns200WithNewTokenPair() throws Exception {
+        given(authService.refresh(any())).willReturn(new AuthResponse("new-access", "new-refresh"));
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"some-valid-token\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("new-access"))
+                .andExpect(jsonPath("$.refreshToken").value("new-refresh"));
+    }
+
+    @Test
+    void refresh_withBlankToken_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void refresh_withMissingBody_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/refresh").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void refresh_withRevokedToken_returns401() throws Exception {
+        given(authService.refresh(any()))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token reuse detected"));
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"reused-token\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void refresh_withExpiredToken_returns401() throws Exception {
+        given(authService.refresh(any()))
+                .willThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token expired"));
+
+        mockMvc.perform(post("/api/v1/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"refreshToken\":\"expired-token\"}"))
+                .andExpect(status().isUnauthorized());
+    }
 }

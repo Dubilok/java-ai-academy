@@ -20,6 +20,7 @@ app:
   jwt:
     secret: ${JWT_SECRET:change-me-dev-only-secret-at-least-32-chars!!}
     access-token-expiry-ms: 900000
+    refresh-token-expiry-days: 30
 
 server:
   port: 8080

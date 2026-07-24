@@ -1,7 +1,13 @@
 package com.javaacademy.platform.auth;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.HexFormat;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +25,8 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final JwtProperties jwtProperties;
     private final Clock clock;
 
     @Transactional
@@ -35,10 +43,10 @@ public class AuthService {
         user.setCreatedAt(Instant.now(clock));
         User saved = userRepository.save(user);
         log.info("Registered new user: {}", saved.getEmail());
-        return new AuthResponse(jwtService.generateAccessToken(saved), generateRefreshToken());
+        return new AuthResponse(jwtService.generateAccessToken(saved), issueRefreshToken(saved));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         User user = userRepository
                 .findByEmail(request.email())
@@ -46,11 +54,58 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
-        return new AuthResponse(jwtService.generateAccessToken(user), generateRefreshToken());
+        return new AuthResponse(jwtService.generateAccessToken(user), issueRefreshToken(user));
     }
 
-    /** Placeholder — E1-T5 will persist the hashed token and add rotation/reuse detection. */
-    private String generateRefreshToken() {
-        return UUID.randomUUID().toString();
+    @Transactional
+    public AuthResponse refresh(RefreshRequest request) {
+        String hash = sha256(request.refreshToken());
+        RefreshToken stored = refreshTokenRepository
+                .findByTokenHash(hash)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
+
+        if (stored.isRevoked()) {
+            revokeAllForUser(stored.getUser());
+            log.warn(
+                    "Refresh token reuse detected for user {}", stored.getUser().getEmail());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token reuse detected");
+        }
+
+        if (stored.getExpiresAt().isBefore(Instant.now(clock))) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token expired");
+        }
+
+        stored.setRevoked(true);
+        refreshTokenRepository.save(stored);
+
+        User user = stored.getUser();
+        return new AuthResponse(jwtService.generateAccessToken(user), issueRefreshToken(user));
+    }
+
+    private String issueRefreshToken(User user) {
+        String raw = UUID.randomUUID().toString();
+        RefreshToken token = new RefreshToken();
+        token.setUser(user);
+        token.setTokenHash(sha256(raw));
+        token.setExpiresAt(Instant.now(clock).plus(jwtProperties.refreshTokenExpiryDays(), ChronoUnit.DAYS));
+        token.setRevoked(false);
+        token.setCreatedAt(Instant.now(clock));
+        refreshTokenRepository.save(token);
+        return raw;
+    }
+
+    private void revokeAllForUser(User user) {
+        List<RefreshToken> all = refreshTokenRepository.findAllByUser(user);
+        all.forEach(t -> t.setRevoked(true));
+        refreshTokenRepository.saveAll(all);
+    }
+
+    static String sha256(String raw) {
+        try {
+            byte[] hash = MessageDigest.getInstance("SHA-256").digest(raw.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 }

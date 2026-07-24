@@ -15,7 +15,7 @@ class JwtServiceTest {
 
     @BeforeEach
     void setUp() {
-        jwtService = new JwtService(new JwtProperties(SECRET, EXPIRY_MS));
+        jwtService = new JwtService(new JwtProperties(SECRET, EXPIRY_MS, 30L));
     }
 
     @Test
@@ -44,14 +44,15 @@ class JwtServiceTest {
 
     @Test
     void isTokenValid_returnsFalseForTokenSignedWithDifferentKey() {
-        JwtService otherService = new JwtService(new JwtProperties("completely-different-secret-key-!!", EXPIRY_MS));
+        JwtService otherService =
+                new JwtService(new JwtProperties("completely-different-secret-key-!!", EXPIRY_MS, 30L));
         String foreignToken = otherService.generateAccessToken(userWithEmail("user@example.com"));
         assertThat(jwtService.isTokenValid(foreignToken)).isFalse();
     }
 
     @Test
     void isTokenValid_returnsFalseForExpiredToken() {
-        JwtService expiredService = new JwtService(new JwtProperties(SECRET, 1L));
+        JwtService expiredService = new JwtService(new JwtProperties(SECRET, 1L, 30L));
         String token = expiredService.generateAccessToken(userWithEmail("user@example.com"));
         // 1 ms expiry — guaranteed expired by the time we validate
         try {
