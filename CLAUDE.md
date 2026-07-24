@@ -503,7 +503,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E2-T1 Course/module/lecture/task read endpoints with cursor pagination
 - [x] E2-T2 Task DTO mapping that **provably** omits `testCode` (test asserts absence in JSON)
 - [x] E2-T3 `user_progress` upsert + attempt counting
-- [ ] E2-T4 XP/level/crystal rules in one `GamificationService`; idempotent award test
+- [x] E2-T4 XP/level/crystal rules in one `GamificationService`; idempotent award test
 - [ ] E2-T5 `/me` and `/me/progress` aggregates
 - [ ] E2-T6 Seed data: one hand-written course, 3 lectures, 5 tasks with real JUnit tests
 
@@ -680,6 +680,7 @@ cd ide-plugin
 | 2026-07-24 | E2-T1 | ✅ | `GET /courses` (public, cursor-paginated), `GET /courses/{id}`, `GET /lectures/{id}`, `GET /tasks/{id}`; `CatalogService` + `CatalogController`; 8 DTOs; cursor = Base64URL(epochMilli~uuid); TaskResponse provably omits testCode/solutionCode; 14 unit tests (CatalogServiceTest) + 14 slice tests (CatalogControllerTest); all 126 tests pass |
 | 2026-07-24 | E2-T2 | ✅ | `TaskDtoMappingTest`: 5 tests covering (1) reflection — record components contain exactly `{id,title,description,difficulty,templateCode,xpReward}`, (2) mapping path — entity with `testCode/solutionCode` populated → `TaskResponse` contains neither, (3) Jackson serialisation — JSON output has no `testCode`/`solutionCode` keys and no secret values; all 130 tests pass |
 | 2026-07-24 | E2-T3 | ✅ | `ProgressService.recordAttempt()` upserts `user_progress`, increments attempts every call, transitions IN_PROGRESS→PASSED on first pass only (returns `true` for first pass, `false` otherwise for idempotent XP award); `STATUS_PASSED/STATUS_IN_PROGRESS` constants public for use by E2-T4; 9 unit tests (ProgressServiceTest) covering all 6 state transitions + null code + findProgress; 9 `@DataJpaTest` Testcontainers tests (UserProgressRepositoryTest) covering UNIQUE constraint, cascade delete, field persistence, null submittedCode; 148 tests pass |
+| 2026-07-24 | E2-T4 | ✅ | `GamificationService.awardTaskCompletion(userId, taskId)` adds `task.xpReward` XP + 1 crystal to user on first pass; `calculateLevel(xpPoints)` uses `min(50, floor(sqrt(xpPoints/100))+1)` formula; wired into `ProgressService.recordAttempt` — gamification fires only when `firstPass=true`; 10 unit tests (GamificationServiceTest) covering XP award, crystal award, user-not-found, and 6 level thresholds; 2 new ProgressServiceTest cases prove award fires once and never on repeat pass; 168 tests pass |
 
 ---
 

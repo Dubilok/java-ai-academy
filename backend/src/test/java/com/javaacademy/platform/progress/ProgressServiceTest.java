@@ -3,6 +3,7 @@ package com.javaacademy.platform.progress;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +14,7 @@ import com.javaacademy.platform.catalog.repository.TaskRepository;
 import com.javaacademy.platform.progress.entity.UserProgress;
 import com.javaacademy.platform.progress.enums.ProgressStatus;
 import com.javaacademy.platform.progress.repository.UserProgressRepository;
+import com.javaacademy.platform.progress.service.GamificationService;
 import com.javaacademy.platform.progress.service.ProgressService;
 import java.time.Clock;
 import java.time.Instant;
@@ -37,6 +39,9 @@ class ProgressServiceTest {
 
     @Mock
     TaskRepository taskRepository;
+
+    @Mock
+    GamificationService gamificationService;
 
     @Mock
     Clock clock;
@@ -173,6 +178,31 @@ class ProgressServiceTest {
         ArgumentCaptor<UserProgress> cap = ArgumentCaptor.forClass(UserProgress.class);
         verify(userProgressRepository).save(cap.capture());
         assertThat(cap.getValue().getSubmittedCode()).isNull();
+    }
+
+    // ── gamification integration ──────────────────────────────────────────────
+
+    @Test
+    void recordAttempt_firstPass_triggersGamificationAward() {
+        when(userProgressRepository.findByUserIdAndTaskId(USER_ID, TASK_ID)).thenReturn(Optional.empty());
+        when(userRepository.getReferenceById(USER_ID)).thenReturn(new User());
+        when(taskRepository.getReferenceById(TASK_ID)).thenReturn(new Task());
+        when(userProgressRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.recordAttempt(USER_ID, TASK_ID, CODE, true);
+
+        verify(gamificationService).awardTaskCompletion(USER_ID, TASK_ID);
+    }
+
+    @Test
+    void recordAttempt_alreadyPassed_doesNotTriggerGamificationAwardAgain() {
+        UserProgress existing = passedAt(1);
+        when(userProgressRepository.findByUserIdAndTaskId(USER_ID, TASK_ID)).thenReturn(Optional.of(existing));
+        when(userProgressRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.recordAttempt(USER_ID, TASK_ID, CODE, true);
+
+        verify(gamificationService, never()).awardTaskCompletion(any(), any());
     }
 
     // ── findProgress ──────────────────────────────────────────────────────────

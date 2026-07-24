@@ -23,6 +23,7 @@ public class ProgressService {
     private final UserProgressRepository userProgressRepository;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
+    private final GamificationService gamificationService;
     private final Clock clock;
 
     /**
@@ -61,6 +62,9 @@ public class ProgressService {
         userProgressRepository.save(progress);
 
         boolean firstPass = passed && !wasAlreadyPassed;
+        if (firstPass) {
+            gamificationService.awardTaskCompletion(userId, taskId);
+        }
         log.debug(
                 "Recorded attempt userId={} taskId={} passed={} attempts={} firstPass={}",
                 userId,
