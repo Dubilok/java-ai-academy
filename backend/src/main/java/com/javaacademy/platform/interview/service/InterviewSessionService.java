@@ -8,6 +8,8 @@ import com.javaacademy.platform.common.ApiException;
 import com.javaacademy.platform.interview.dto.EvaluationReport;
 import com.javaacademy.platform.interview.dto.FinishSessionResponse;
 import com.javaacademy.platform.interview.dto.QuestionInSession;
+import com.javaacademy.platform.interview.dto.SessionDetailResponse;
+import com.javaacademy.platform.interview.dto.SessionSummaryResponse;
 import com.javaacademy.platform.interview.dto.StartSessionRequest;
 import com.javaacademy.platform.interview.dto.StartSessionResponse;
 import com.javaacademy.platform.interview.dto.SubmitAnswerRequest;
@@ -162,6 +164,56 @@ public class InterviewSessionService {
                 user.getId(),
                 report.overallScore());
         return new FinishSessionResponse(sessionId, InterviewSessionStatus.FINISHED, report.overallScore(), report);
+    }
+
+    @Transactional(readOnly = true)
+    public SessionDetailResponse getSession(UUID sessionId, String userEmail) {
+        User user = requireUser(userEmail);
+        InterviewSession session = sessionRepository
+                .findByIdAndUser_Id(sessionId, user.getId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Session not found: " + sessionId));
+        return toDetailResponse(session);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SessionSummaryResponse> listSessions(String userEmail) {
+        User user = requireUser(userEmail);
+        return sessionRepository.findByUser_IdOrderByCreatedAtDesc(user.getId()).stream()
+                .map(InterviewSessionService::toSummaryResponse)
+                .toList();
+    }
+
+    private SessionDetailResponse toDetailResponse(InterviewSession session) {
+        EvaluationReport report = null;
+        if (session.getReportJson() != null) {
+            report = deserializeReport(session.getReportJson());
+        }
+        return new SessionDetailResponse(
+                session.getId(),
+                session.getTechnology(),
+                session.getStatus(),
+                session.getScore(),
+                report,
+                session.getCreatedAt());
+    }
+
+    private static SessionSummaryResponse toSummaryResponse(InterviewSession session) {
+        return new SessionSummaryResponse(
+                session.getId(),
+                session.getTechnology(),
+                session.getStatus(),
+                session.getScore(),
+                session.getCreatedAt());
+    }
+
+    private EvaluationReport deserializeReport(String reportJson) {
+        try {
+            return objectMapper.readValue(reportJson, EvaluationReport.class);
+        } catch (JsonProcessingException deserializationException) {
+            throw new ApiException(
+                    org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to deserialize session report: " + deserializationException.getMessage());
+        }
     }
 
     private String serializeReport(EvaluationReport report) {

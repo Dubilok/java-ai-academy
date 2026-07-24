@@ -3,6 +3,7 @@ package com.javaacademy.platform.interview.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -15,6 +16,8 @@ import com.javaacademy.platform.interview.dto.EvaluationDimension;
 import com.javaacademy.platform.interview.dto.EvaluationReport;
 import com.javaacademy.platform.interview.dto.FinishSessionResponse;
 import com.javaacademy.platform.interview.dto.QuestionInSession;
+import com.javaacademy.platform.interview.dto.SessionDetailResponse;
+import com.javaacademy.platform.interview.dto.SessionSummaryResponse;
 import com.javaacademy.platform.interview.dto.StartSessionRequest;
 import com.javaacademy.platform.interview.dto.StartSessionResponse;
 import com.javaacademy.platform.interview.dto.SubmitAnswerRequest;
@@ -213,6 +216,71 @@ class InterviewSessionControllerTest {
 
         mockMvc.perform(post("/api/v1/interview/sessions/{id}/finish", SESSION_ID))
                 .andExpect(status().isNotFound());
+    }
+
+    // ── GET /interview/sessions/{id} ──────────────────────────────────────────
+
+    @Test
+    void getSession_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/interview/sessions/{id}", SESSION_ID)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "student@example.com", roles = "STUDENT")
+    void getSession_finishedSession_returns200WithReport() throws Exception {
+        EvaluationReport report = stubbedReport(SESSION_ID, 88);
+        SessionDetailResponse response = new SessionDetailResponse(
+                SESSION_ID, "Java", InterviewSessionStatus.FINISHED, 88, report, Instant.parse("2026-07-25T10:00:00Z"));
+        when(sessionService.getSession(eq(SESSION_ID), any())).thenReturn(response);
+
+        mockMvc.perform(get("/api/v1/interview/sessions/{id}", SESSION_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionId").value(SESSION_ID.toString()))
+                .andExpect(jsonPath("$.status").value("FINISHED"))
+                .andExpect(jsonPath("$.score").value(88))
+                .andExpect(jsonPath("$.report.overallScore").value(88))
+                .andExpect(jsonPath("$.report.dimensions.length()").value(10));
+    }
+
+    @Test
+    @WithMockUser(username = "student@example.com", roles = "STUDENT")
+    void getSession_sessionNotFound_returns404() throws Exception {
+        when(sessionService.getSession(eq(SESSION_ID), any()))
+                .thenThrow(new ApiException(HttpStatus.NOT_FOUND, "Session not found"));
+
+        mockMvc.perform(get("/api/v1/interview/sessions/{id}", SESSION_ID)).andExpect(status().isNotFound());
+    }
+
+    // ── GET /interview/sessions ────────────────────────────────────────────────
+
+    @Test
+    void listSessions_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/interview/sessions")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "student@example.com", roles = "STUDENT")
+    void listSessions_authenticated_returns200WithList() throws Exception {
+        UUID sessionId2 = UUID.fromString("66666666-6666-6666-6666-666666666666");
+        List<SessionSummaryResponse> summaries = List.of(
+                new SessionSummaryResponse(
+                        SESSION_ID, "Java", InterviewSessionStatus.FINISHED, 88, Instant.parse("2026-07-25T10:00:00Z")),
+                new SessionSummaryResponse(
+                        sessionId2,
+                        "Spring",
+                        InterviewSessionStatus.ACTIVE,
+                        null,
+                        Instant.parse("2026-07-24T08:00:00Z")));
+        when(sessionService.listSessions(any())).thenReturn(summaries);
+
+        mockMvc.perform(get("/api/v1/interview/sessions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].sessionId").value(SESSION_ID.toString()))
+                .andExpect(jsonPath("$[0].status").value("FINISHED"))
+                .andExpect(jsonPath("$[0].score").value(88))
+                .andExpect(jsonPath("$[1].sessionId").value(sessionId2.toString()))
+                .andExpect(jsonPath("$[1].score").doesNotExist());
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────

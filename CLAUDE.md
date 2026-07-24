@@ -4,7 +4,7 @@
 > It is Claude's persistent memory across sessions. Read it fully before doing any work.
 > Every completed task, decision, and blocker is recorded here — not in chat history.
 
-**Status:** E5 in progress · **Last updated:** 2026-07-24 · **Doc version:** 1.0
+**Status:** E6 complete · **Last updated:** 2026-07-25 · **Doc version:** 1.0
 
 ---
 
@@ -463,6 +463,8 @@ Full request/response bodies: `docs/api-contract.md`. OpenAPI is generated at `/
 | POST | `/interview/sessions` | start mock interview |
 | POST | `/interview/sessions/{id}/answers` | submit answer → follow-up question |
 | POST | `/interview/sessions/{id}/finish` | 10-dimension evaluation report |
+| GET | `/interview/sessions/{id}` | session detail: status, score, full `EvaluationReport` (if finished) |
+| GET | `/interview/sessions` | list all sessions for the authenticated user, newest first |
 
 ### Admin (`ROLE_ADMIN`)
 | Method | Path | Purpose |
@@ -547,7 +549,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E6-T2 Session state machine (start → Q/A loop → finish) persisted per turn
 - [x] E6-T3 Adaptive difficulty from rolling answer scores
 - [x] E6-T4 Structured 10-dimension evaluation JSON + schema validation
-- [ ] E6-T5 Session report endpoint + history
+- [x] E6-T5 Session report endpoint + history
 
 ### E7 — Web frontend (Next.js 14)
 - [ ] E7-T1 App scaffold, Tailwind tokens from §11, fonts, dark theme
@@ -708,6 +710,7 @@ cd ide-plugin
 | 2026-07-25 | E6-T2 | ✅ | `InterviewSessionStatus` enum (ACTIVE/FINISHED); V8 migration adds `status` + `current_question_id` FK to `interview_sessions`; `InterviewSession` entity gains `status` (@Enumerated) and `currentQuestion` (@ManyToOne nullable); `InterviewSessionRepository.findByIdAndUser_Id`; `InterviewAnswerRepository.findAskedQuestionIdsBySessionId` JPQL; `InterviewQuestionRepository.findByTechnology` + `findByTechnologyExcluding` for next-question selection; `InterviewSessionService.startSession` picks random first question, creates ACTIVE session; `submitAnswer` saves answer, picks next question from remaining pool (excludes already-asked IDs), updates `currentQuestion` in session; `InterviewSessionController`: `POST /api/v1/interview/sessions` (201) + `POST /api/v1/interview/sessions/{id}/answers` (200); 8 unit tests (InterviewSessionServiceTest) + 6 slice tests (InterviewSessionControllerTest); `FlywayMigrationTest` updated to expect V8; 443 tests pass |
 | 2026-07-25 | E6-T3 | ✅ | `AdaptiveDifficultySelector` `@UtilityClass`: rolling window of last 3 scored answers; avg ≥ 70 → step up, avg ≤ 30 → step down, otherwise retain; min 2 scored answers required (warm-up phase); null scores filtered out (pre-E6-T4); V9 migration adds `created_at TIMESTAMPTZ DEFAULT now()` to `interview_answers` + composite index; `InterviewAnswer` entity gains `createdAt` field (insertable=false); `InterviewAnswerRepository.findScoresBySessionId` JPQL ordered by `createdAt`; `InterviewSessionService.pickNextQuestion` prefers candidates at target difficulty, falls back to any remaining; 18 unit tests (AdaptiveDifficultySelectorTest) + 3 new service unit tests; 429 tests pass |
 | 2026-07-25 | E6-T4 | ✅ | A4 Mock Interviewer (Claude): `EvaluationDimension` + `EvaluationReport` records with Jakarta validation (10 required, score 0–100, non-blank feedback); `EvaluationReportParser` parses LLM JSON → validates dimensions count + constraints + full report; `MockInterviewerService` (final, CT_CONSTRUCTOR_THROW safe): builds Q&A transcript, calls anthropicLlmClient, parses/validates report; system prompt at `resources/prompts/mock-interviewer-system.txt` with 10-dimension rubric; `InterviewSessionService.finishSession` checks ACTIVE, loads answers (JOIN FETCH), calls evaluator, sets FINISHED + score + JSON; `POST /api/v1/interview/sessions/{id}/finish` → 200 `FinishSessionResponse`; `InterviewAnswerRepository.findBySessionIdWithQuestionOrderByCreatedAt` JPQL; 10 unit tests (EvaluationReportParserTest) + 4 service unit tests + 4 controller slice tests; 448 tests pass |
+| 2026-07-25 | E6-T5 | ✅ | Session report + history endpoints: `GET /interview/sessions/{id}` returns `SessionDetailResponse` (status, score, full deserialized `EvaluationReport` for FINISHED, null for ACTIVE); `GET /interview/sessions` returns `List<SessionSummaryResponse>` ordered newest-first; `InterviewSessionRepository.findByUser_IdOrderByCreatedAtDesc`; `InterviewSessionService.getSession`/`listSessions`/`toDetailResponse`/`toSummaryResponse`/`deserializeReport`; 5 service unit tests (active with no report, finished with deserialized report, not-found 404, newest-first ordering, empty list) + 4 controller slice tests (401 unauthenticated, 200 finished with report, 404, 200 list with nulls); §8 updated; 458 tests pass |
 | 2026-07-25 | E6-T1 | ✅ | `InterviewDifficulty` enum (BEGINNER/INTERMEDIATE/ADVANCED/EXPERT) in `interview/enums/`; V7 migration adds CHECK constraint + explicit DEFAULT 'INTERMEDIATE'; `InterviewQuestion.difficulty` migrated from String to `@Enumerated(EnumType.STRING)` enum; `InterviewQuestionRepository.findByFilters` JPQL with 3 optional params; `InterviewQuestionService` (findQuestions/findById/create/update/delete); `InterviewQuestionController`: `GET /api/v1/interview/questions` (student, all filters optional), `POST/PUT/DELETE /api/v1/admin/interview/questions` (admin); `GlobalExceptionHandler` + `MethodArgumentTypeMismatchException` → 400 for invalid enum query params; 11 unit tests (InterviewQuestionServiceTest) + 12 slice tests (InterviewQuestionControllerTest); `JpaMappingTest` updated to use enum; `FlywayMigrationTest` updated to expect V7; 409 tests pass |
 | 2026-07-24 | E5-T5 | ✅ | `SocraticMentorGoldenSetTest`: 30 parameterized tests (10 broken submissions × 3 assertions each) — LLM stubbed with clean Socratic-question hints; asserts `HintLeakDetector.containsSolutionCode()` = false, hint is non-blank, and hint contains at least one `?` for all 10 scenarios (type error, off-by-one, NPE, scope, string equality, null guard, sorting, stack order, area method, integer division); 378 tests pass |
 | 2026-07-24 | E5-T4 | ✅ | `POST /api/v1/tasks/{taskId}/ai-hint` endpoint; `V6__ai_hints.sql` creates `ai_hints` table with user/task FK and indexes; `AiRateLimiter` fixed-window Redis rate limit (20 hints/hour, key `rate:ai-hint:{userId}:{hourBucket}`); `HintService` looks up user by email (JWT principal), checks rate limit, fetches last FAILED submission logs for context, calls `SocraticMentorService`, persists `AiHint`; fixed `UnfinishedStubbingException` in `HintServiceTest` (nested `when(mock.method())` inside outer `when()` thenReturn arg); updated `FlywayMigrationTest` to expect V6 + ai_hints table/indexes; 9 unit tests (HintServiceTest) + 4 slice tests (HintControllerTest); 348 tests pass |

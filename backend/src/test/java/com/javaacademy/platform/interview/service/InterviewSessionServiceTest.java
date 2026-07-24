@@ -15,6 +15,8 @@ import com.javaacademy.platform.common.ApiException;
 import com.javaacademy.platform.interview.dto.EvaluationDimension;
 import com.javaacademy.platform.interview.dto.EvaluationReport;
 import com.javaacademy.platform.interview.dto.FinishSessionResponse;
+import com.javaacademy.platform.interview.dto.SessionDetailResponse;
+import com.javaacademy.platform.interview.dto.SessionSummaryResponse;
 import com.javaacademy.platform.interview.dto.StartSessionRequest;
 import com.javaacademy.platform.interview.dto.StartSessionResponse;
 import com.javaacademy.platform.interview.dto.SubmitAnswerRequest;
@@ -305,6 +307,83 @@ class InterviewSessionServiceTest {
         SubmitAnswerResponse response = service.submitAnswer(SESSION_ID, new SubmitAnswerRequest("Answer"), USER_EMAIL);
 
         assertThat(response.nextQuestion()).isNotNull();
+    }
+
+    // ── getSession ─────────────────────────────────────────────────────────────
+
+    @Test
+    void getSession_activeSession_returnsDetailWithoutReport() {
+        InterviewSession session = activeSession(question1);
+        when(sessionRepository.findByIdAndUser_Id(SESSION_ID, USER_ID)).thenReturn(Optional.of(session));
+
+        SessionDetailResponse response = service.getSession(SESSION_ID, USER_EMAIL);
+
+        assertThat(response.sessionId()).isEqualTo(SESSION_ID);
+        assertThat(response.technology()).isEqualTo(TECHNOLOGY);
+        assertThat(response.status()).isEqualTo(InterviewSessionStatus.ACTIVE);
+        assertThat(response.score()).isNull();
+        assertThat(response.report()).isNull();
+    }
+
+    @Test
+    void getSession_finishedSession_returnsDetailWithDeserializedReport() throws Exception {
+        EvaluationReport report = stubbedReport(82);
+        String reportJson =
+                new ObjectMapper().registerModule(new JavaTimeModule()).writeValueAsString(report);
+
+        InterviewSession session = activeSession(question1);
+        session.setStatus(InterviewSessionStatus.FINISHED);
+        session.setScore(82);
+        session.setReportJson(reportJson);
+        when(sessionRepository.findByIdAndUser_Id(SESSION_ID, USER_ID)).thenReturn(Optional.of(session));
+
+        SessionDetailResponse response = service.getSession(SESSION_ID, USER_EMAIL);
+
+        assertThat(response.status()).isEqualTo(InterviewSessionStatus.FINISHED);
+        assertThat(response.score()).isEqualTo(82);
+        assertThat(response.report()).isNotNull();
+        assertThat(response.report().overallScore()).isEqualTo(82);
+        assertThat(response.report().dimensions()).hasSize(10);
+    }
+
+    @Test
+    void getSession_sessionNotFound_throws404() {
+        when(sessionRepository.findByIdAndUser_Id(SESSION_ID, USER_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getSession(SESSION_ID, USER_EMAIL))
+                .isInstanceOf(ApiException.class)
+                .extracting("status")
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    // ── listSessions ───────────────────────────────────────────────────────────
+
+    @Test
+    void listSessions_withSessions_returnsNewestFirst() {
+        InterviewSession older = activeSession(question1);
+        older.setCreatedAt(Instant.parse("2026-07-24T08:00:00Z"));
+        UUID olderSessionId = UUID.randomUUID();
+        setId(older, olderSessionId);
+
+        InterviewSession newer = activeSession(question2);
+        newer.setCreatedAt(Instant.parse("2026-07-25T10:00:00Z"));
+
+        when(sessionRepository.findByUser_IdOrderByCreatedAtDesc(USER_ID)).thenReturn(List.of(newer, older));
+
+        List<SessionSummaryResponse> sessions = service.listSessions(USER_EMAIL);
+
+        assertThat(sessions).hasSize(2);
+        assertThat(sessions.get(0).sessionId()).isEqualTo(SESSION_ID);
+        assertThat(sessions.get(1).sessionId()).isEqualTo(olderSessionId);
+    }
+
+    @Test
+    void listSessions_noSessions_returnsEmptyList() {
+        when(sessionRepository.findByUser_IdOrderByCreatedAtDesc(USER_ID)).thenReturn(List.of());
+
+        List<SessionSummaryResponse> sessions = service.listSessions(USER_EMAIL);
+
+        assertThat(sessions).isEmpty();
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────
