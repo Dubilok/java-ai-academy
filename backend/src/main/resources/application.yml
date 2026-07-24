@@ -40,6 +40,12 @@ app:
       retry-initial-delay-ms: 1000
       input-cost-per-million-tokens: ${ANTHROPIC_INPUT_COST_PER_MILLION:3.00}
       output-cost-per-million-tokens: ${ANTHROPIC_OUTPUT_COST_PER_MILLION:15.00}
+    gemini:
+      api-key: ${GEMINI_API_KEY:change-me-set-in-env}
+      base-url: https://generativelanguage.googleapis.com
+      default-model: ${GEMINI_MODEL:gemini-2.0-flash}
+      max-retries: 3
+      retry-initial-delay-ms: 1000
 
 server:
   port: 8080
