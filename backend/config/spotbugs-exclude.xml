@@ -17,10 +17,10 @@
         <Bug pattern="BC_UNCONFIRMED_CAST_OF_RETURN_VALUE"/>
     </Match>
 
-    <!-- Test classes: intentional null usage, magic numbers, etc. -->
+    <!-- Test classes: intentional null usage, magic numbers, swallowed exceptions for skip logic -->
     <Match>
         <Class name="~.*Test"/>
-        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE,UWF_UNWRITTEN_FIELD,DLS_DEAD_LOCAL_STORE"/>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE,UWF_UNWRITTEN_FIELD,DLS_DEAD_LOCAL_STORE,DE_MIGHT_IGNORE"/>
     </Match>
 
 </FindBugsFilter>
