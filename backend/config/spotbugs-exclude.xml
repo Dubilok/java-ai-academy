@@ -23,4 +23,13 @@
         <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE,UWF_UNWRITTEN_FIELD,DLS_DEAD_LOCAL_STORE,DE_MIGHT_IGNORE"/>
     </Match>
 
+    <!--
+      Text blocks use \n as line separator by design — %n would produce platform-specific
+      line endings, which is wrong for JSON test fixtures. SpotBugs VA_FORMAT_STRING_USES_NEWLINE
+      is a false positive on .formatted() calls inside text-block string constants.
+    -->
+    <Match>
+        <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
+    </Match>
+
 </FindBugsFilter>
