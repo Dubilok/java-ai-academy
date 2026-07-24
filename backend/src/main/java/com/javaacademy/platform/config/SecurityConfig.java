@@ -1,6 +1,6 @@
 package com.javaacademy.platform.config;
 
-import com.javaacademy.platform.auth.JwtService;
+import com.javaacademy.platform.auth.service.JwtService;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

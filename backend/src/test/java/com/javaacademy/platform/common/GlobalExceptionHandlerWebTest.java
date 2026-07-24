@@ -6,10 +6,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.javaacademy.platform.auth.AuthController;
-import com.javaacademy.platform.auth.AuthResponse;
-import com.javaacademy.platform.auth.AuthService;
-import com.javaacademy.platform.auth.JwtService;
+import com.javaacademy.platform.auth.controller.AuthController;
+import com.javaacademy.platform.auth.dto.AuthResponse;
+import com.javaacademy.platform.auth.service.AuthService;
+import com.javaacademy.platform.auth.service.JwtService;
 import com.javaacademy.platform.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

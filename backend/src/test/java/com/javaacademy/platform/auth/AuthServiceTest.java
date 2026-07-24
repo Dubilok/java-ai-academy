@@ -7,6 +7,16 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import com.javaacademy.platform.auth.dto.AuthResponse;
+import com.javaacademy.platform.auth.dto.LoginRequest;
+import com.javaacademy.platform.auth.dto.RefreshRequest;
+import com.javaacademy.platform.auth.dto.RegisterRequest;
+import com.javaacademy.platform.auth.entity.RefreshToken;
+import com.javaacademy.platform.auth.entity.User;
+import com.javaacademy.platform.auth.repository.RefreshTokenRepository;
+import com.javaacademy.platform.auth.repository.UserRepository;
+import com.javaacademy.platform.auth.service.AuthService;
+import com.javaacademy.platform.auth.service.JwtService;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;

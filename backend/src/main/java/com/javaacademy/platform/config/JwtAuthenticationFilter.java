@@ -1,6 +1,6 @@
 package com.javaacademy.platform.config;
 
-import com.javaacademy.platform.auth.JwtService;
+import com.javaacademy.platform.auth.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

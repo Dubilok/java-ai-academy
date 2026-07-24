@@ -7,9 +7,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.javaacademy.platform.auth.AuthResponse;
-import com.javaacademy.platform.auth.AuthService;
-import com.javaacademy.platform.auth.JwtService;
+import com.javaacademy.platform.auth.dto.AuthResponse;
+import com.javaacademy.platform.auth.service.AuthService;
+import com.javaacademy.platform.auth.service.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;

@@ -3,6 +3,10 @@ package com.javaacademy.platform.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.javaacademy.platform.auth.entity.RefreshToken;
+import com.javaacademy.platform.auth.entity.User;
+import com.javaacademy.platform.auth.repository.RefreshTokenRepository;
+import com.javaacademy.platform.auth.repository.UserRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;

@@ -2,6 +2,8 @@ package com.javaacademy.platform.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.javaacademy.platform.auth.entity.User;
+import com.javaacademy.platform.auth.service.JwtService;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

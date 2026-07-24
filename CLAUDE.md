@@ -192,7 +192,25 @@ java-ai-academy/
 ├── .env.example                 ← every env var, dummy values
 ├── backend/                     ← Spring Boot 3.3, Java 21, Gradle Kotlin DSL
 │   └── src/main/java/com/javaacademy/platform/
-│       ├── auth/  catalog/  progress/  sandbox/  ai/  interview/
+│       ├── auth/
+│       │   ├── controller/      ← AuthController
+│       │   ├── service/         ← AuthService, JwtService
+│       │   ├── entity/          ← User, RefreshToken
+│       │   ├── repository/      ← UserRepository, RefreshTokenRepository
+│       │   └── dto/             ← AuthResponse, LoginRequest, RegisterRequest, RefreshRequest
+│       ├── catalog/
+│       │   ├── entity/          ← Course, CourseModule, Lecture, Task
+│       │   └── repository/
+│       ├── progress/
+│       │   ├── entity/          ← Submission, UserProgress
+│       │   └── repository/
+│       ├── ai/
+│       │   ├── entity/          ← AiGenerationLog, AiEvaluation
+│       │   └── repository/
+│       ├── interview/
+│       │   ├── entity/          ← InterviewQuestion, InterviewSession, InterviewAnswer
+│       │   └── repository/
+│       ├── sandbox/             ← (E3) Docker execution engine
 │       ├── common/              ← error handling, base types, utils
 │       └── config/              ← security, jackson, openapi, docker client
 ├── frontend/                    ← Next.js 14 App Router, TS, Tailwind, Monaco
@@ -203,7 +221,7 @@ java-ai-academy/
 └── .github/workflows/           ← CI
 ```
 
-**Package rule (backend):** organise by *feature*, then by layer inside it — `catalog/CourseController.java`, `catalog/CourseService.java`, `catalog/Course.java`. Never create top-level `controllers/`, `services/`, `models/` packages. Cross-feature calls go through a public service interface; entities never cross a feature boundary (map to a DTO).
+**Package rule (backend):** organise by *feature*, then by layer inside it — `catalog/controller/CourseController.java`, `catalog/service/CourseService.java`, `catalog/entity/Course.java`, `catalog/repository/CourseRepository.java`, `catalog/dto/CourseResponse.java`. Never create top-level `controllers/`, `services/`, `models/` packages. Cross-feature calls go through a public service interface; entities never cross a feature boundary (map to a DTO). `@ConfigurationProperties` records and other feature-root utilities (e.g. `auth/JwtProperties.java`) may stay at the feature root level.
 
 ---
 
