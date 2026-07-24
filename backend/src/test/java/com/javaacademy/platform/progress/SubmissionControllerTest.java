@@ -3,9 +3,12 @@ package com.javaacademy.platform.progress;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,6 +31,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 @WebMvcTest(SubmissionController.class)
 @Import(SecurityConfig.class)
@@ -154,5 +158,53 @@ class SubmissionControllerTest {
                 .willThrow(new ApiException(HttpStatus.NOT_FOUND, "Submission not found: " + submissionId));
 
         mockMvc.perform(get("/api/v1/submissions/{submissionId}", submissionId)).andExpect(status().isNotFound());
+    }
+
+    // ── GET /submissions/{submissionId}/stream ────────────────────────────────────
+
+    @Test
+    void streamSubmission_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/submissions/{submissionId}/stream", UUID.randomUUID())
+                        .accept(MediaType.TEXT_EVENT_STREAM_VALUE))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "student@test.com")
+    void streamSubmission_passedSubmission_returnsSseStreamWithVerdict() throws Exception {
+        UUID submissionId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        SubmissionResponse passedResponse = new SubmissionResponse(
+                submissionId, taskId, "PASSED", "Tests passed", 500L, Instant.parse("2026-07-24T10:00:00Z"));
+        given(submissionService.findSubmission(eq(submissionId), eq("student@test.com")))
+                .willReturn(passedResponse);
+
+        MvcResult mvcResult = mockMvc.perform(get("/api/v1/submissions/{submissionId}/stream", submissionId)
+                        .accept(MediaType.TEXT_EVENT_STREAM_VALUE))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mvcResult.getAsyncResult(5_000L);
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM_VALUE));
+    }
+
+    @Test
+    @WithMockUser(username = "student@test.com")
+    void streamSubmission_submissionNotFound_completesWithError() throws Exception {
+        UUID submissionId = UUID.randomUUID();
+        given(submissionService.findSubmission(eq(submissionId), eq("student@test.com")))
+                .willThrow(new ApiException(HttpStatus.NOT_FOUND, "Submission not found: " + submissionId));
+
+        MvcResult mvcResult = mockMvc.perform(get("/api/v1/submissions/{submissionId}/stream", submissionId)
+                        .accept(MediaType.TEXT_EVENT_STREAM_VALUE))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mvcResult.getAsyncResult(5_000L);
+        // Emitter completes with error — response is still 200 (SSE errors don't change HTTP status)
+        mockMvc.perform(asyncDispatch(mvcResult)).andExpect(status().isOk());
     }
 }
