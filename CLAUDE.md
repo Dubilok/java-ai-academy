@@ -439,7 +439,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E1-T1 Gradle Kotlin DSL build, version catalog, Spring Boot 3.3 skeleton, `/actuator/health` returns UP
 - [~] E1-T2 Flyway migration `V1__initial_schema.sql` (all 12 tables in §7) — code complete, tests blocked by Docker overlay2 read-only filesystem; restart Docker Desktop then run `./gradlew test`
 - [~] E1-T3 JPA entities + repositories; Testcontainers Postgres test proves every mapping loads — code complete, tests blocked by Docker overlay2 read-only filesystem; restart Docker Desktop then run `./gradlew test`
-- [ ] E1-T4 `POST /auth/register` + `/auth/login`: BCrypt(12), JWT issue, integration-tested
+- [x] E1-T4 `POST /auth/register` + `/auth/login`: BCrypt(12), JWT issue, integration-tested
 - [ ] E1-T5 Refresh-token rotation with reuse detection
 - [ ] E1-T6 `SecurityFilterChain`: public/student/admin rules; test asserts 401 and 403 paths
 - [ ] E1-T7 Global `ProblemDetail` exception handler + validation error shape
@@ -615,6 +615,7 @@ cd ide-plugin
 | 2026-07-23 | E1-T1 | ✅ | Gradle 8.11.1 wrapper, version catalog, Spring Boot 3.3.6 skeleton, virtual threads; `ActuatorHealthTest` passes |
 | 2026-07-23 | E1-T2 | ⚠️ | Flyway V1: 12 tables, 15 indexes, FK policies per §7; compiles but tests blocked — Docker overlay2 read-only, needs Docker Desktop restart |
 | 2026-07-23 | E1-T3 | ⚠️ | 12 JPA entities + repositories across 4 feature packages with Lombok `@Getter @Setter`; `JpaMappingTest` covers all 12 entity types; blocked by same Docker overlay2 issue |
+| 2026-07-24 | E1-T4 | ✅ | `POST /auth/register` + `/auth/login`; BCrypt(12); HS256 JWT (15-min); `AuthControllerTest` (8 tests, @WebMvcTest — no Docker needed) all pass; refreshToken is placeholder UUID until E1-T5 |
 
 ---
 

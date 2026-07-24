@@ -39,6 +39,7 @@ lombok   = { module = "org.projectlombok:lombok" }
 # Testing
 spring-boot-starter-test      = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-boot-testcontainers    = { module = "org.springframework.boot:spring-boot-testcontainers" }
+spring-security-test      = { module = "org.springframework.security:spring-security-test" }
 archunit-junit5           = { module = "com.tngtech.archunit:archunit-junit5",  version.ref = "archunit" }
 testcontainers-junit5     = { module = "org.testcontainers:junit-jupiter",      version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql",         version.ref = "testcontainers" }
