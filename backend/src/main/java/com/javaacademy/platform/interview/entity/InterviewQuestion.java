@@ -1,7 +1,10 @@
 package com.javaacademy.platform.interview.entity;
 
+import com.javaacademy.platform.interview.enums.InterviewDifficulty;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -40,6 +43,7 @@ public class InterviewQuestion {
     @Column(name = "detailed_explanation")
     private String detailedExplanation;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String difficulty;
+    private InterviewDifficulty difficulty;
 }

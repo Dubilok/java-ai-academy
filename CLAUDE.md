@@ -422,7 +422,7 @@ erDiagram
 | `tasks` | `id`, `lecture_id` FK CASCADE, `title`, `description`, `difficulty`, `template_code`, `test_code`, `xp_reward` | `test_code` is never sent to a student client |
 | `user_progress` | `id`, `user_id`, `task_id`, `status`, `attempts`, `submitted_code`, `updated_at` | `status`: `ProgressStatus` enum (`IN_PROGRESS`, `PASSED`); CHECK constraint; UNIQUE `(user_id, task_id)` |
 | `submissions` | `id`, `user_id`, `task_id`, `source`, `status`, `logs`, `duration_ms`, `created_at` | `status`: `SubmissionStatus` enum (`PENDING`, `PASSED`, `FAILED`); CHECK constraint; append-only audit trail |
-| `interview_questions` | `id`, `technology`, `category`, `question`, `short_answer`, `detailed_explanation`, `difficulty` | Seeded + AI-extended |
+| `interview_questions` | `id`, `technology`, `category`, `question`, `short_answer`, `detailed_explanation`, `difficulty` | `difficulty`: `InterviewDifficulty` enum (BEGINNER/INTERMEDIATE/ADVANCED/EXPERT); CHECK constraint V7; Seeded + AI-extended |
 | `interview_sessions` / `interview_answers` | session: `user_id`, `technology`, `score`, `report_json` | 10-dimension rubric report |
 | `ai_generation_log` | `id`, `agent`, `model`, `prompt_tokens`, `completion_tokens`, `cost_usd`, `latency_ms`, `outcome` | Powers FinOps + Judge dashboards |
 | `ai_evaluation` | `id`, `target_type`, `target_id`, `judge_scores_json`, `flags` | LLM-as-a-Judge output |
@@ -472,6 +472,9 @@ Full request/response bodies: `docs/api-contract.md`. OpenAPI is generated at `/
 | POST | `/admin/courses/{id}/publish` | publish/unpublish |
 | PUT | `/admin/tasks/{id}` | hand-edit generated content |
 | GET | `/admin/ai/usage` | token + cost telemetry |
+| POST | `/admin/interview/questions` | create flashcard |
+| PUT | `/admin/interview/questions/{id}` | update flashcard |
+| DELETE | `/admin/interview/questions/{id}` | delete flashcard |
 
 ### IDE plugin
 Uses the same student endpoints plus `GET /ide/bootstrap` (courses + tasks trimmed for the tool window) and sends `X-Client: intellij-plugin/<version>` for telemetry separation.
@@ -540,7 +543,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E5-T5 Golden-set test: 10 broken submissions → assert hints contain no compilable solution
 
 ### E6 — Interview trainer & A4 Mock Interviewer
-- [ ] E6-T1 Flashcard CRUD + filtered query endpoints
+- [x] E6-T1 Flashcard CRUD + filtered query endpoints
 - [ ] E6-T2 Session state machine (start → Q/A loop → finish) persisted per turn
 - [ ] E6-T3 Adaptive difficulty from rolling answer scores
 - [ ] E6-T4 Structured 10-dimension evaluation JSON + schema validation
@@ -702,6 +705,7 @@ cd ide-plugin
 | 2026-07-24 | E5-T2 | ✅ | `SocraticMentorService` @Service: injects `@Qualifier("geminiLlmClient") LlmClient` + `socratic-mentor-system.txt` prompt resource; `generateHint(HintRequest)` builds a delimited prompt wrapping task title, task description, student source, and error output (prompt-injection safe); truncates source at 4096 chars, error at 2048 chars; null errorOutput gets placeholder text; `docs/prompts/socratic-mentor-system.txt` system prompt enforces 1-2 Socratic questions, bans solution code and full method bodies; `CT_CONSTRUCTOR_THROW` SpotBugs excluded (same reason as ContentArchitectService); 9 unit tests cover grounding, delimiters, null/oversized inputs |
 | 2026-07-24 | E5-T3 | ✅ | `HintLeakDetector` @UtilityClass in `ai/util/`: extracts all code fences via regex, counts non-blank/non-comment lines per fence, flags any fence with >3 substantive lines as solution leakage; `SocraticMentorService.generateHint()` now runs the leak check on the first hint — if flagged, retries once with `CRITICAL VIOLATION` warning appended to the prompt; if retry also leaks, returns safe `CANNED_HINT`; max 2 LLM calls total; 10 HintLeakDetectorTest unit tests (clean/leaky heuristic cases) + 5 SocraticMentorServiceTest anti-leak path tests; 325 tests pass |
 | 2026-07-24 | E3-T1 | ✅ | `sandbox-image/Dockerfile` on `eclipse-temurin:21-jdk-jammy` pinned by digest (sha256:9d8dcf99…); JUnit Platform Console Standalone 1.10.3 sha256-verified at build time; non-root user uid=1000; `build.sh` builds image, verifies `java -version` under all §6.2 flags, confirms jar present, asserts no leaked containers; `openjdk:21-slim` noted as retired in §4 + README |
+| 2026-07-25 | E6-T1 | ✅ | `InterviewDifficulty` enum (BEGINNER/INTERMEDIATE/ADVANCED/EXPERT) in `interview/enums/`; V7 migration adds CHECK constraint + explicit DEFAULT 'INTERMEDIATE'; `InterviewQuestion.difficulty` migrated from String to `@Enumerated(EnumType.STRING)` enum; `InterviewQuestionRepository.findByFilters` JPQL with 3 optional params; `InterviewQuestionService` (findQuestions/findById/create/update/delete); `InterviewQuestionController`: `GET /api/v1/interview/questions` (student, all filters optional), `POST/PUT/DELETE /api/v1/admin/interview/questions` (admin); `GlobalExceptionHandler` + `MethodArgumentTypeMismatchException` → 400 for invalid enum query params; 11 unit tests (InterviewQuestionServiceTest) + 12 slice tests (InterviewQuestionControllerTest); `JpaMappingTest` updated to use enum; `FlywayMigrationTest` updated to expect V7; 409 tests pass |
 | 2026-07-24 | E5-T5 | ✅ | `SocraticMentorGoldenSetTest`: 30 parameterized tests (10 broken submissions × 3 assertions each) — LLM stubbed with clean Socratic-question hints; asserts `HintLeakDetector.containsSolutionCode()` = false, hint is non-blank, and hint contains at least one `?` for all 10 scenarios (type error, off-by-one, NPE, scope, string equality, null guard, sorting, stack order, area method, integer division); 378 tests pass |
 | 2026-07-24 | E5-T4 | ✅ | `POST /api/v1/tasks/{taskId}/ai-hint` endpoint; `V6__ai_hints.sql` creates `ai_hints` table with user/task FK and indexes; `AiRateLimiter` fixed-window Redis rate limit (20 hints/hour, key `rate:ai-hint:{userId}:{hourBucket}`); `HintService` looks up user by email (JWT principal), checks rate limit, fetches last FAILED submission logs for context, calls `SocraticMentorService`, persists `AiHint`; fixed `UnfinishedStubbingException` in `HintServiceTest` (nested `when(mock.method())` inside outer `when()` thenReturn arg); updated `FlywayMigrationTest` to expect V6 + ai_hints table/indexes; 9 unit tests (HintServiceTest) + 4 slice tests (HintControllerTest); 348 tests pass |
 | 2026-07-24 | E3-T2 | ✅ | `DockerCodeExecutionService` implements `CodeExecutionEngine`; all §6.2 flags in `buildHostConfig`; `FrameCollector` (non-deprecated `ResultCallbackTemplate`) caps logs at 64KB; `Semaphore` for bounded concurrency; cleanup in `finally` (removeQuietly + deleteWorkDir); `SandboxConfig` bean wires `ApacheDockerHttpClient`; `SandboxProperties` @ConfigurationProperties; 14 unit tests (Mockito RETURNS_SELF for fluent docker-java builders); all tests pass |

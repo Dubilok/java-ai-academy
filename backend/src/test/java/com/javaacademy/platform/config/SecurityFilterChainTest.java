@@ -13,6 +13,7 @@ import com.javaacademy.platform.auth.dto.AuthResponse;
 import com.javaacademy.platform.auth.service.AuthService;
 import com.javaacademy.platform.auth.service.JwtService;
 import com.javaacademy.platform.catalog.service.CatalogService;
+import com.javaacademy.platform.interview.service.InterviewQuestionService;
 import com.javaacademy.platform.progress.service.MeService;
 import com.javaacademy.platform.progress.service.SubmissionService;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,9 @@ class SecurityFilterChainTest {
 
     @MockBean
     HintService hintService;
+
+    @MockBean
+    InterviewQuestionService questionService;
 
     // ── public paths ───────────────────────────────────────────────────────────
 

@@ -19,6 +19,7 @@ import com.javaacademy.platform.catalog.repository.TaskRepository;
 import com.javaacademy.platform.interview.entity.InterviewAnswer;
 import com.javaacademy.platform.interview.entity.InterviewQuestion;
 import com.javaacademy.platform.interview.entity.InterviewSession;
+import com.javaacademy.platform.interview.enums.InterviewDifficulty;
 import com.javaacademy.platform.interview.repository.InterviewAnswerRepository;
 import com.javaacademy.platform.interview.repository.InterviewQuestionRepository;
 import com.javaacademy.platform.interview.repository.InterviewSessionRepository;
@@ -175,7 +176,7 @@ class JpaMappingTest {
         question.setTechnology("Java");
         question.setCategory("Collections");
         question.setQuestion("What is the difference between List and Set?");
-        question.setDifficulty("INTERMEDIATE");
+        question.setDifficulty(InterviewDifficulty.INTERMEDIATE);
         InterviewQuestion saved = interviewQuestionRepository.save(question);
         assertThat(saved.getId()).isNotNull();
         assertThat(interviewQuestionRepository.findById(saved.getId())).isPresent();
@@ -206,7 +207,7 @@ class JpaMappingTest {
         question.setTechnology("Java");
         question.setCategory("OOP");
         question.setQuestion("What is polymorphism?");
-        question.setDifficulty("BEGINNER");
+        question.setDifficulty(InterviewDifficulty.BEGINNER);
         InterviewQuestion savedQuestion = interviewQuestionRepository.save(question);
 
         InterviewAnswer answer = new InterviewAnswer();
