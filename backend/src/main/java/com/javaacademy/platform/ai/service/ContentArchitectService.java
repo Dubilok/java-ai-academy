@@ -5,6 +5,10 @@ import com.javaacademy.platform.ai.client.LlmException;
 import com.javaacademy.platform.ai.client.LlmRequest;
 import com.javaacademy.platform.ai.client.LlmResponse;
 import com.javaacademy.platform.ai.dto.GeneratedContent;
+import com.javaacademy.platform.ai.entity.AiGenerationLog;
+import com.javaacademy.platform.ai.enums.AgentType;
+import com.javaacademy.platform.ai.enums.GenerationOutcome;
+import com.javaacademy.platform.ai.repository.AiGenerationLogRepository;
 import com.javaacademy.platform.sandbox.CodeExecutionEngine;
 import com.javaacademy.platform.sandbox.dto.ExecutionRequest;
 import com.javaacademy.platform.sandbox.dto.ExecutionResult;
@@ -12,6 +16,8 @@ import com.javaacademy.platform.sandbox.enums.ExecutionStatus;
 import com.javaacademy.platform.sandbox.util.JavaClassNameExtractor;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +27,7 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public final class ContentArchitectService {
+public class ContentArchitectService {
 
     static final int MAX_ATTEMPTS = 3;
     static final String DEFAULT_TEST_CLASS = "TaskTest";
@@ -29,6 +35,8 @@ public final class ContentArchitectService {
     private final LlmClient llmClient;
     private final ContentParser contentParser;
     private final CodeExecutionEngine executionEngine;
+    private final AiGenerationLogRepository generationLogRepository;
+    private final Clock clock;
     private final String systemPrompt;
 
     @Autowired
@@ -36,11 +44,15 @@ public final class ContentArchitectService {
             LlmClient llmClient,
             ContentParser contentParser,
             CodeExecutionEngine executionEngine,
+            AiGenerationLogRepository generationLogRepository,
+            Clock clock,
             @Value("classpath:prompts/content-architect-system.txt") Resource systemPromptResource)
             throws IOException {
         this.llmClient = llmClient;
         this.contentParser = contentParser;
         this.executionEngine = executionEngine;
+        this.generationLogRepository = generationLogRepository;
+        this.clock = clock;
         this.systemPrompt = systemPromptResource.getContentAsString(StandardCharsets.UTF_8);
     }
 
@@ -49,10 +61,14 @@ public final class ContentArchitectService {
             LlmClient llmClient,
             ContentParser contentParser,
             CodeExecutionEngine executionEngine,
+            AiGenerationLogRepository generationLogRepository,
+            Clock clock,
             String systemPrompt) {
         this.llmClient = llmClient;
         this.contentParser = contentParser;
         this.executionEngine = executionEngine;
+        this.generationLogRepository = generationLogRepository;
+        this.clock = clock;
         this.systemPrompt = systemPrompt;
     }
 
@@ -60,7 +76,12 @@ public final class ContentArchitectService {
      * Generates a lecture + task for the given technology topic, running the self-healing loop
      * (max 3 attempts) until the generated tests pass the generated solution in the sandbox.
      *
-     * @throws LlmException if all attempts are exhausted without a passing sandbox run
+     * <p>On success: saves a {@code SUCCEEDED} log entry and returns the content.
+     * On exhaustion: saves an {@code EXHAUSTED} log entry and throws {@link LlmException} —
+     * the caller never receives unverified content.
+     *
+     * @throws LlmException if all attempts are exhausted without a passing sandbox run,
+     *     or if the LLM response cannot be parsed into valid {@link GeneratedContent}
      */
     public GeneratedContent generateForTopic(String technology) {
         String userPrompt = "Generate a lecture and programming task for: " + technology;
@@ -75,6 +96,7 @@ public final class ContentArchitectService {
 
             if (result.status() == ExecutionStatus.PASSED) {
                 log.info("Content generation succeeded on attempt {}/{} for '{}'", attempt, MAX_ATTEMPTS, technology);
+                saveLog(GenerationOutcome.SUCCEEDED);
                 return content;
             }
 
@@ -87,6 +109,7 @@ public final class ContentArchitectService {
                     truncate(lastError, 500));
         }
 
+        saveLog(GenerationOutcome.EXHAUSTED);
         throw new LlmException(
                 "Content generation for '" + technology + "' failed after " + MAX_ATTEMPTS + " self-healing attempts");
     }
@@ -98,6 +121,7 @@ public final class ContentArchitectService {
         try {
             return contentParser.parse(response.content());
         } catch (LlmException parseException) {
+            saveLog(GenerationOutcome.PARSE_FAILED);
             throw new LlmException("Attempt " + attempt + " parse failure: " + parseException.getMessage());
         }
     }
@@ -109,6 +133,15 @@ public final class ContentArchitectService {
         ExecutionRequest request =
                 new ExecutionRequest(UUID.randomUUID(), content.solutionCode(), content.testCode(), testClassName);
         return executionEngine.execute(request);
+    }
+
+    private void saveLog(GenerationOutcome outcome) {
+        AiGenerationLog logEntry = new AiGenerationLog();
+        logEntry.setAgent(AgentType.CONTENT_ARCHITECT);
+        logEntry.setModel("content-architect");
+        logEntry.setOutcome(outcome);
+        logEntry.setCreatedAt(Instant.now(clock));
+        generationLogRepository.save(logEntry);
     }
 
     private static String buildSelfHealingPrompt(int attempt, String originalPrompt, String errorOutput) {

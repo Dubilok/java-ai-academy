@@ -16,9 +16,13 @@ import com.javaacademy.platform.ai.client.LlmResponse;
 import com.javaacademy.platform.ai.dto.GeneratedContent;
 import com.javaacademy.platform.ai.dto.GeneratedLecture;
 import com.javaacademy.platform.ai.dto.GeneratedTask;
+import com.javaacademy.platform.ai.entity.AiGenerationLog;
+import com.javaacademy.platform.ai.enums.GenerationOutcome;
+import com.javaacademy.platform.ai.repository.AiGenerationLogRepository;
 import com.javaacademy.platform.catalog.enums.Difficulty;
 import com.javaacademy.platform.sandbox.CodeExecutionEngine;
 import com.javaacademy.platform.sandbox.dto.ExecutionResult;
+import java.time.Clock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,6 +31,7 @@ class ContentArchitectServiceTest {
     LlmClient llmClient;
     ContentParser contentParser;
     CodeExecutionEngine executionEngine;
+    AiGenerationLogRepository generationLogRepository;
     ContentArchitectService service;
 
     @BeforeEach
@@ -34,7 +39,14 @@ class ContentArchitectServiceTest {
         llmClient = mock(LlmClient.class);
         contentParser = mock(ContentParser.class);
         executionEngine = mock(CodeExecutionEngine.class);
-        service = new ContentArchitectService(llmClient, contentParser, executionEngine, "test-system-prompt");
+        generationLogRepository = mock(AiGenerationLogRepository.class);
+        service = new ContentArchitectService(
+                llmClient,
+                contentParser,
+                executionEngine,
+                generationLogRepository,
+                Clock.systemUTC(),
+                "test-system-prompt");
     }
 
     // ── happy path ─────────────────────────────────────────────────────────────
@@ -51,6 +63,18 @@ class ContentArchitectServiceTest {
         assertThat(result).isSameAs(content);
         verify(llmClient, times(1)).complete(any());
         verify(executionEngine, times(1)).execute(any());
+    }
+
+    @Test
+    void generateForTopic_success_persistsSucceededLog() {
+        when(llmClient.complete(any(LlmRequest.class))).thenReturn(new LlmResponse("{}", 10, 200));
+        when(contentParser.parse(any())).thenReturn(sampleContent());
+        when(executionEngine.execute(any())).thenReturn(ExecutionResult.passed("Tests passed", 500L));
+
+        service.generateForTopic("Java Records");
+
+        verify(generationLogRepository, times(1))
+                .save(argThat((AiGenerationLog logEntry) -> logEntry.getOutcome() == GenerationOutcome.SUCCEEDED));
     }
 
     // ── self-healing ───────────────────────────────────────────────────────────
@@ -104,6 +128,18 @@ class ContentArchitectServiceTest {
         verify(executionEngine, times(3)).execute(any());
     }
 
+    @Test
+    void generateForTopic_allAttemptsExhausted_persistsExhaustedLog() {
+        when(llmClient.complete(any(LlmRequest.class))).thenReturn(new LlmResponse("{}", 10, 200));
+        when(contentParser.parse(any())).thenReturn(sampleContent());
+        when(executionEngine.execute(any())).thenReturn(ExecutionResult.failed(3, "still broken", 300L));
+
+        assertThatThrownBy(() -> service.generateForTopic("Java Records")).isInstanceOf(LlmException.class);
+
+        verify(generationLogRepository, times(1))
+                .save(argThat((AiGenerationLog logEntry) -> logEntry.getOutcome() == GenerationOutcome.EXHAUSTED));
+    }
+
     // ── parse failure ──────────────────────────────────────────────────────────
 
     @Test
@@ -114,6 +150,17 @@ class ContentArchitectServiceTest {
         assertThatThrownBy(() -> service.generateForTopic("Java Records")).isInstanceOf(LlmException.class);
 
         verify(executionEngine, times(0)).execute(any());
+    }
+
+    @Test
+    void generateForTopic_parseFailure_persistsParseFailedLog() {
+        when(llmClient.complete(any(LlmRequest.class))).thenReturn(new LlmResponse("bad json", 5, 10));
+        when(contentParser.parse(any())).thenThrow(new LlmException("Invalid JSON"));
+
+        assertThatThrownBy(() -> service.generateForTopic("Java Records")).isInstanceOf(LlmException.class);
+
+        verify(generationLogRepository, times(1))
+                .save(argThat((AiGenerationLog logEntry) -> logEntry.getOutcome() == GenerationOutcome.PARSE_FAILED));
     }
 
     // ── sandbox timeout treated as failure ─────────────────────────────────────

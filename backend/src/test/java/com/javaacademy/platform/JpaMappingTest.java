@@ -221,9 +221,9 @@ class JpaMappingTest {
     @Test
     void aiGenerationLog_persistsAndLoadsById() {
         AiGenerationLog log = new AiGenerationLog();
-        log.setAgent("content-architect");
+        log.setAgent(com.javaacademy.platform.ai.enums.AgentType.CONTENT_ARCHITECT);
         log.setModel("claude-sonnet-4-6");
-        log.setOutcome("SUCCESS");
+        log.setOutcome(com.javaacademy.platform.ai.enums.GenerationOutcome.SUCCEEDED);
         log.setCreatedAt(Instant.now());
         AiGenerationLog saved = aiGenerationLogRepository.save(log);
         assertThat(saved.getId()).isNotNull();

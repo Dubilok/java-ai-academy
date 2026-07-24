@@ -1,7 +1,11 @@
 package com.javaacademy.platform.ai.entity;
 
+import com.javaacademy.platform.ai.enums.AgentType;
+import com.javaacademy.platform.ai.enums.GenerationOutcome;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,8 +29,9 @@ public class AiGenerationLog {
     @Setter(AccessLevel.NONE)
     private UUID id;
 
-    @Column(nullable = false)
-    private String agent;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private AgentType agent;
 
     @Column(nullable = false)
     private String model;
@@ -47,8 +52,9 @@ public class AiGenerationLog {
     @Column(name = "latency_ms")
     private Long latencyMs;
 
-    @Column(nullable = false)
-    private String outcome;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private GenerationOutcome outcome;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
