@@ -2,6 +2,7 @@ package com.javaacademy.platform.interview.repository;
 
 import com.javaacademy.platform.interview.entity.InterviewQuestion;
 import com.javaacademy.platform.interview.enums.InterviewDifficulty;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -20,4 +21,10 @@ public interface InterviewQuestionRepository extends JpaRepository<InterviewQues
             @Param("technology") @Nullable String technology,
             @Param("category") @Nullable String category,
             @Param("difficulty") @Nullable InterviewDifficulty difficulty);
+
+    List<InterviewQuestion> findByTechnology(String technology);
+
+    @Query("SELECT q FROM InterviewQuestion q WHERE q.technology = :technology AND q.id NOT IN :excludedIds")
+    List<InterviewQuestion> findByTechnologyExcluding(
+            @Param("technology") String technology, @Param("excludedIds") Collection<UUID> excludedIds);
 }

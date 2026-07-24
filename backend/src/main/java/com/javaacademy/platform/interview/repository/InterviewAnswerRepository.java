@@ -1,7 +1,14 @@
 package com.javaacademy.platform.interview.repository;
 
 import com.javaacademy.platform.interview.entity.InterviewAnswer;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-public interface InterviewAnswerRepository extends JpaRepository<InterviewAnswer, UUID> {}
+public interface InterviewAnswerRepository extends JpaRepository<InterviewAnswer, UUID> {
+
+    @Query("SELECT a.question.id FROM InterviewAnswer a WHERE a.session.id = :sessionId")
+    List<UUID> findAskedQuestionIdsBySessionId(@Param("sessionId") UUID sessionId);
+}
