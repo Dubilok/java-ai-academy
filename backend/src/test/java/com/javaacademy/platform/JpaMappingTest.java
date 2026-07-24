@@ -171,12 +171,12 @@ class JpaMappingTest {
 
     @Test
     void interviewQuestion_persistsAndLoadsById() {
-        InterviewQuestion q = new InterviewQuestion();
-        q.setTechnology("Java");
-        q.setCategory("Collections");
-        q.setQuestion("What is the difference between List and Set?");
-        q.setDifficulty("INTERMEDIATE");
-        InterviewQuestion saved = interviewQuestionRepository.save(q);
+        InterviewQuestion question = new InterviewQuestion();
+        question.setTechnology("Java");
+        question.setCategory("Collections");
+        question.setQuestion("What is the difference between List and Set?");
+        question.setDifficulty("INTERMEDIATE");
+        InterviewQuestion saved = interviewQuestionRepository.save(question);
         assertThat(saved.getId()).isNotNull();
         assertThat(interviewQuestionRepository.findById(saved.getId())).isPresent();
     }
@@ -202,16 +202,16 @@ class JpaMappingTest {
         session.setCreatedAt(Instant.now());
         InterviewSession savedSession = interviewSessionRepository.save(session);
 
-        InterviewQuestion q = new InterviewQuestion();
-        q.setTechnology("Java");
-        q.setCategory("OOP");
-        q.setQuestion("What is polymorphism?");
-        q.setDifficulty("BEGINNER");
-        InterviewQuestion savedQ = interviewQuestionRepository.save(q);
+        InterviewQuestion question = new InterviewQuestion();
+        question.setTechnology("Java");
+        question.setCategory("OOP");
+        question.setQuestion("What is polymorphism?");
+        question.setDifficulty("BEGINNER");
+        InterviewQuestion savedQuestion = interviewQuestionRepository.save(question);
 
         InterviewAnswer answer = new InterviewAnswer();
         answer.setSession(savedSession);
-        answer.setQuestion(savedQ);
+        answer.setQuestion(savedQuestion);
         answer.setAnswerText("The ability of different objects to respond to the same message.");
         InterviewAnswer saved = interviewAnswerRepository.save(answer);
         assertThat(saved.getId()).isNotNull();
@@ -241,23 +241,23 @@ class JpaMappingTest {
     }
 
     private User makeUser(String email) {
-        User u = new User();
-        u.setEmail(email);
-        u.setPasswordHash("$2a$12$placeholder");
-        u.setRole("ROLE_STUDENT");
-        u.setXpPoints(0L);
-        u.setCrystals(0L);
-        u.setCreatedAt(Instant.now());
-        return u;
+        User user = new User();
+        user.setEmail(email);
+        user.setPasswordHash("$2a$12$placeholder");
+        user.setRole("ROLE_STUDENT");
+        user.setXpPoints(0L);
+        user.setCrystals(0L);
+        user.setCreatedAt(Instant.now());
+        return user;
     }
 
     private Course makeCourse(String technology) {
-        Course c = new Course();
-        c.setTitle("Core " + technology);
-        c.setTechnology(technology);
-        c.setPublished(false);
-        c.setCreatedAt(Instant.now());
-        return c;
+        Course course = new Course();
+        course.setTitle("Core " + technology);
+        course.setTechnology(technology);
+        course.setPublished(false);
+        course.setCreatedAt(Instant.now());
+        return course;
     }
 
     private Lecture makeLecture() {

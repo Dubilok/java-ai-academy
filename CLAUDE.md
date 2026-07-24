@@ -191,28 +191,42 @@ java-ai-academy/
 ├── .claude/commands/            ← /dev-task-step, /dev-task-open-question
 ├── .env.example                 ← every env var, dummy values
 ├── backend/                     ← Spring Boot 3.3, Java 21, Gradle Kotlin DSL
-│   └── src/main/java/com/javaacademy/platform/
-│       ├── auth/
-│       │   ├── controller/      ← AuthController
-│       │   ├── service/         ← AuthService, JwtService
-│       │   ├── entity/          ← User, RefreshToken
-│       │   ├── repository/      ← UserRepository, RefreshTokenRepository
-│       │   └── dto/             ← AuthResponse, LoginRequest, RegisterRequest, RefreshRequest
-│       ├── catalog/
-│       │   ├── entity/          ← Course, CourseModule, Lecture, Task
-│       │   └── repository/
-│       ├── progress/
-│       │   ├── entity/          ← Submission, UserProgress
-│       │   └── repository/
-│       ├── ai/
-│       │   ├── entity/          ← AiGenerationLog, AiEvaluation
-│       │   └── repository/
-│       ├── interview/
-│       │   ├── entity/          ← InterviewQuestion, InterviewSession, InterviewAnswer
-│       │   └── repository/
-│       ├── sandbox/             ← (E3) Docker execution engine
-│       ├── common/              ← error handling, base types, utils
-│       └── config/              ← security, jackson, openapi, docker client
+│   └── src/main/
+│       ├── java/com/javaacademy/platform/
+│       │   ├── auth/
+│       │   │   ├── controller/      ← AuthController
+│       │   │   ├── service/         ← AuthService, JwtService
+│       │   │   ├── entity/          ← User, RefreshToken
+│       │   │   ├── repository/      ← UserRepository, RefreshTokenRepository
+│       │   │   ├── dto/             ← AuthResponse, LoginRequest, RegisterRequest, RefreshRequest
+│       │   │   └── JwtProperties.java  ← @ConfigurationProperties record (feature-root)
+│       │   ├── catalog/
+│       │   │   ├── controller/      ← CatalogController
+│       │   │   ├── service/         ← CatalogService
+│       │   │   ├── entity/          ← Course, CourseModule, Lecture, Task
+│       │   │   ├── repository/      ← CourseRepository, …
+│       │   │   ├── dto/             ← CourseResponse, TaskResponse, PagedResponse, …
+│       │   │   └── enums/           ← Difficulty (EASY/MEDIUM/HARD) — when added
+│       │   ├── progress/
+│       │   │   ├── service/         ← ProgressService
+│       │   │   ├── entity/          ← Submission, UserProgress
+│       │   │   ├── repository/      ← UserProgressRepository, SubmissionRepository
+│       │   │   └── enums/           ← ProgressStatus, SubmissionStatus
+│       │   ├── ai/
+│       │   │   ├── entity/          ← AiGenerationLog, AiEvaluation
+│       │   │   ├── repository/
+│       │   │   └── enums/           ← AgentType, GenerationOutcome — when added
+│       │   ├── interview/
+│       │   │   ├── entity/          ← InterviewQuestion, InterviewSession, InterviewAnswer
+│       │   │   ├── repository/
+│       │   │   └── enums/           ← InterviewDifficulty — when added
+│       │   ├── sandbox/             ← (E3) Docker execution engine
+│       │   ├── common/              ← ApiException, GlobalExceptionHandler, base types
+│       │   └── config/              ← SecurityConfig, AppConfig (Clock bean), Jackson, OpenAPI
+│       └── resources/
+│           ├── application.yml          ← all config; env-var placeholders for secrets
+│           ├── application-local.yml    ← local dev overrides (git-ignored)
+│           └── db/migration/            ← V1__initial_schema.sql, V2__…, V3__…
 ├── frontend/                    ← Next.js 14 App Router, TS, Tailwind, Monaco
 ├── ide-plugin/                  ← Kotlin, IntelliJ Platform SDK, Gradle
 ├── sandbox-image/               ← Dockerfile for the runner image + JUnit console jar
@@ -221,7 +235,16 @@ java-ai-academy/
 └── .github/workflows/           ← CI
 ```
 
-**Package rule (backend):** organise by *feature*, then by layer inside it — `catalog/controller/CourseController.java`, `catalog/service/CourseService.java`, `catalog/entity/Course.java`, `catalog/repository/CourseRepository.java`, `catalog/dto/CourseResponse.java`. Never create top-level `controllers/`, `services/`, `models/` packages. Cross-feature calls go through a public service interface; entities never cross a feature boundary (map to a DTO). `@ConfigurationProperties` records and other feature-root utilities (e.g. `auth/JwtProperties.java`) may stay at the feature root level.
+**Package rule (backend):** organise by *feature*, then by layer inside it — `catalog/controller/CourseController.java`, `catalog/service/CatalogService.java`, `catalog/entity/Course.java`, `catalog/repository/CourseRepository.java`, `catalog/dto/CourseResponse.java`. Never create top-level `controllers/`, `services/`, `models/` packages. Cross-feature calls go through a public service interface; entities never cross a feature boundary (map to a DTO).
+
+Sub-package conventions within a feature:
+- `entity/` — JPA entities only; classes annotated `@Entity`
+- `repository/` — Spring Data repository interfaces
+- `service/` — `@Service` classes with `@Transactional` methods
+- `controller/` — `@RestController` classes; thin, no business logic
+- `dto/` — Java records for request/response mapping; never contain `@Entity` references
+- `enums/` — enums for any fixed value set used by that feature (status fields, difficulty levels, outcome types); see §5.1 enum rules
+- Feature-root level: `@ConfigurationProperties` records (e.g. `auth/JwtProperties.java`), feature-specific exceptions
 
 ---
 
@@ -269,6 +292,9 @@ java-ai-academy/
 - **Time:** `Instant` in the domain and DB (`TIMESTAMPTZ`), formatted at the edge. Inject `Clock` so tests can freeze it.
 - **Money/points:** `long` for XP, never floating point.
 - **Logging:** SLF4J with parameterised messages. **Never log** JWTs, API keys, password hashes, or full student source code.
+- **Enums for closed value sets:** Any column or field with a fixed set of named values must be an enum in the feature's `enums/` sub-package — never a `String` constant, never an `int` ordinal. JPA mapping: always `@Enumerated(EnumType.STRING)` (never `ORDINAL` — ordinal breaks silently when enum members are reordered). Pair every new enum column with a Flyway `CHECK` constraint in the same (or a subsequent) migration so the DB rejects invalid strings independently of the application. Example: `ProgressStatus` in `progress/enums/`, `SubmissionStatus` in `progress/enums/`.
+- **`@ConfigurationProperties` records:** Bind all config via typed `@ConfigurationProperties` records, not scattered `@Value` fields. One record per concern; prefix `app.<feature>` (e.g. `app.jwt`). Place the record at the feature root (e.g. `auth/JwtProperties.java`). Config goes in `application.yml` (YAML, not `.properties` — hierarchical structure is clearer). Local overrides go in `application-local.yml` which is git-ignored. Secrets come from environment variables referenced as `${VAR_NAME:default}` — never hardcoded.
+- **Naming:** Use full descriptive names everywhere — variables, parameters, and loop variables. Single-letter names (`p`, `u`, `t`, `s`) are banned outside throwaway lambda streams. Name after what the value *is*, not what type it has: `UserProgress progress`, `User user`, `Task task`, `Course course`. Helper methods in tests follow the same rule: `savedUser(email)`, `progressFor(user, task, status, attempts)`.
 - Formatting: Spotless with `palantir-java-format`, 4-space indent, 120-col soft limit. `./gradlew spotlessApply` before commit.
 - Static analysis: SpotBugs runs on `check`. `EI_EXPOSE_REP2` is suppressed for JPA entity packages (storing entity refs is correct ORM usage). Mark Spring service classes that can throw from their constructor as `final` to satisfy SEI CERT OBJ-11 (see `JwtService`).
 
@@ -295,6 +321,7 @@ java-ai-academy/
 - `snake_case` names; plural tables; PK `id UUID`; FKs `<entity>_id` with an explicit `ON DELETE` policy.
 - Index every FK and every column used in a `WHERE` that runs per request.
 - No business logic in triggers or stored procedures.
+- **Enum columns:** use `VARCHAR(50) NOT NULL` on the column; add a `CHECK (col IN ('A','B','C'))` constraint in the migration that creates the column (or a follow-up migration if retrofitting). Default value must be a member of the enum — never a legacy sentinel like `NOT_STARTED` that no code actually sets. The `CHECK` constraint acts as a second line of defence independent of the application layer.
 
 ### 5.5 Testing
 
@@ -375,7 +402,7 @@ erDiagram
     INTERVIEW_QUESTIONS ||--o{ INTERVIEW_ANSWERS : answered_as
 ```
 
-**Core tables** (V1 DDL: `db/migration/V1__initial_schema.sql`; V2 DDL: `db/migration/V2__refresh_tokens.sql`):
+**Core tables** (V1: `db/migration/V1__initial_schema.sql`; V2: `V2__refresh_tokens.sql`; V3: `V3__status_enum_constraints.sql`):
 
 | Table | Key columns | Notes |
 |---|---|---|
@@ -385,8 +412,8 @@ erDiagram
 | `modules` | `id`, `course_id` FK CASCADE, `title`, `order_index` | UNIQUE `(course_id, order_index)` |
 | `lectures` | `id`, `module_id` FK CASCADE, `title`, `content_markdown`, `order_index` | UNIQUE `(module_id, order_index)` |
 | `tasks` | `id`, `lecture_id` FK CASCADE, `title`, `description`, `difficulty`, `template_code`, `test_code`, `xp_reward` | `test_code` is never sent to a student client |
-| `user_progress` | `id`, `user_id`, `task_id`, `status`, `attempts`, `submitted_code`, `updated_at` | UNIQUE `(user_id, task_id)` |
-| `submissions` | `id`, `user_id`, `task_id`, `source`, `status`, `logs`, `duration_ms`, `created_at` | Append-only audit trail; `user_progress` holds the latest state |
+| `user_progress` | `id`, `user_id`, `task_id`, `status`, `attempts`, `submitted_code`, `updated_at` | `status`: `ProgressStatus` enum (`IN_PROGRESS`, `PASSED`); CHECK constraint; UNIQUE `(user_id, task_id)` |
+| `submissions` | `id`, `user_id`, `task_id`, `source`, `status`, `logs`, `duration_ms`, `created_at` | `status`: `SubmissionStatus` enum (`PENDING`, `PASSED`, `FAILED`); CHECK constraint; append-only audit trail |
 | `interview_questions` | `id`, `technology`, `category`, `question`, `short_answer`, `detailed_explanation`, `difficulty` | Seeded + AI-extended |
 | `interview_sessions` / `interview_answers` | session: `user_id`, `technology`, `score`, `report_json` | 10-dimension rubric report |
 | `ai_generation_log` | `id`, `agent`, `model`, `prompt_tokens`, `completion_tokens`, `cost_usd`, `latency_ms`, `outcome` | Powers FinOps + Judge dashboards |

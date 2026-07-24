@@ -77,13 +77,13 @@ public class ProgressService {
     }
 
     private UserProgress newProgress(UUID userId, UUID taskId) {
-        UserProgress p = new UserProgress();
+        UserProgress progress = new UserProgress();
         // getReferenceById returns a JPA proxy: sets the FK column without a SELECT
-        p.setUser(userRepository.getReferenceById(userId));
-        p.setTask(taskRepository.getReferenceById(taskId));
-        p.setStatus(ProgressStatus.IN_PROGRESS);
-        p.setAttempts(0);
-        p.setUpdatedAt(Instant.EPOCH); // overwritten immediately by caller
-        return p;
+        progress.setUser(userRepository.getReferenceById(userId));
+        progress.setTask(taskRepository.getReferenceById(taskId));
+        progress.setStatus(ProgressStatus.IN_PROGRESS);
+        progress.setAttempts(0);
+        progress.setUpdatedAt(Instant.EPOCH); // overwritten immediately by caller
+        return progress;
     }
 }

@@ -124,14 +124,14 @@ class TaskDtoMappingTest {
     // ── helper ────────────────────────────────────────────────────────────────
 
     private Task taskWithSecrets() {
-        Task t = new Task();
-        t.setTitle("Hello World");
-        t.setDescription("Print hello world");
-        t.setDifficulty("EASY");
-        t.setTemplateCode("// write here");
-        t.setTestCode("HIDDEN_TEST_CODE: assert output.equals(\"Hello World\");");
-        t.setSolutionCode("HIDDEN_SOLUTION_CODE: System.out.println(\"Hello World\");");
-        t.setXpReward(50L);
-        return t;
+        Task task = new Task();
+        task.setTitle("Hello World");
+        task.setDescription("Print hello world");
+        task.setDifficulty("EASY");
+        task.setTemplateCode("// write here");
+        task.setTestCode("HIDDEN_TEST_CODE: assert output.equals(\"Hello World\");");
+        task.setSolutionCode("HIDDEN_SOLUTION_CODE: System.out.println(\"Hello World\");");
+        task.setXpReward(50L);
+        return task;
     }
 }

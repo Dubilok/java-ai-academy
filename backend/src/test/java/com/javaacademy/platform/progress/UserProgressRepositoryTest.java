@@ -165,30 +165,30 @@ class UserProgressRepositoryTest {
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
-    private UserProgress savedProgress(User u, Task t, ProgressStatus status, int attempts) {
-        UserProgress p = progressFor(u, t, status, attempts);
-        return userProgressRepository.saveAndFlush(p);
+    private UserProgress savedProgress(User user, Task task, ProgressStatus status, int attempts) {
+        UserProgress progress = progressFor(user, task, status, attempts);
+        return userProgressRepository.saveAndFlush(progress);
     }
 
-    private UserProgress progressFor(User u, Task t, ProgressStatus status, int attempts) {
-        UserProgress p = new UserProgress();
-        p.setUser(u);
-        p.setTask(t);
-        p.setStatus(status);
-        p.setAttempts(attempts);
-        p.setUpdatedAt(Instant.parse("2026-07-24T10:00:00Z"));
-        return p;
+    private UserProgress progressFor(User user, Task task, ProgressStatus status, int attempts) {
+        UserProgress progress = new UserProgress();
+        progress.setUser(user);
+        progress.setTask(task);
+        progress.setStatus(status);
+        progress.setAttempts(attempts);
+        progress.setUpdatedAt(Instant.parse("2026-07-24T10:00:00Z"));
+        return progress;
     }
 
     private User savedUser(String email) {
-        User u = new User();
-        u.setEmail(email);
-        u.setPasswordHash("$2a$12$hash");
-        u.setRole("ROLE_STUDENT");
-        u.setXpPoints(0L);
-        u.setCrystals(0L);
-        u.setCreatedAt(Instant.parse("2026-07-24T10:00:00Z"));
-        return userRepository.saveAndFlush(u);
+        User user = new User();
+        user.setEmail(email);
+        user.setPasswordHash("$2a$12$hash");
+        user.setRole("ROLE_STUDENT");
+        user.setXpPoints(0L);
+        user.setCrystals(0L);
+        user.setCreatedAt(Instant.parse("2026-07-24T10:00:00Z"));
+        return userRepository.saveAndFlush(user);
     }
 
     private Task savedTask() {
@@ -211,11 +211,11 @@ class UserProgressRepositoryTest {
         lecture.setOrderIndex(1);
         lectureRepository.saveAndFlush(lecture);
 
-        Task t = new Task();
-        t.setLecture(lecture);
-        t.setTitle("Task 1");
-        t.setDifficulty("EASY");
-        t.setXpReward(10L);
-        return taskRepository.saveAndFlush(t);
+        Task task = new Task();
+        task.setLecture(lecture);
+        task.setTitle("Task 1");
+        task.setDifficulty("EASY");
+        task.setXpReward(10L);
+        return taskRepository.saveAndFlush(task);
     }
 }

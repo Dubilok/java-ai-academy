@@ -190,18 +190,18 @@ class ProgressServiceTest {
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private UserProgress inProgressAt(int attempts) {
-        UserProgress p = new UserProgress();
-        p.setStatus(ProgressStatus.IN_PROGRESS);
-        p.setAttempts(attempts);
-        p.setUpdatedAt(Instant.EPOCH);
-        return p;
+        UserProgress progress = new UserProgress();
+        progress.setStatus(ProgressStatus.IN_PROGRESS);
+        progress.setAttempts(attempts);
+        progress.setUpdatedAt(Instant.EPOCH);
+        return progress;
     }
 
     private UserProgress passedAt(int attempts) {
-        UserProgress p = new UserProgress();
-        p.setStatus(ProgressStatus.PASSED);
-        p.setAttempts(attempts);
-        p.setUpdatedAt(Instant.EPOCH);
-        return p;
+        UserProgress progress = new UserProgress();
+        progress.setStatus(ProgressStatus.PASSED);
+        progress.setAttempts(attempts);
+        progress.setUpdatedAt(Instant.EPOCH);
+        return progress;
     }
 }

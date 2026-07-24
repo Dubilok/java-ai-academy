@@ -217,33 +217,32 @@ class CatalogServiceTest {
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private Course course(String title, Instant createdAt) {
-        // Use reflection-free construction via setters (Lombok @Setter on entity)
-        Course c = new Course();
-        c.setTitle(title);
-        c.setDescription(null);
-        c.setTechnology("Java");
-        c.setPublished(true);
-        c.setCreatedAt(createdAt);
-        return c;
+        Course course = new Course();
+        course.setTitle(title);
+        course.setDescription(null);
+        course.setTechnology("Java");
+        course.setPublished(true);
+        course.setCreatedAt(createdAt);
+        return course;
     }
 
     private Lecture lecture(String title) {
-        Lecture l = new Lecture();
-        l.setTitle(title);
-        l.setContentMarkdown("# Content");
-        l.setOrderIndex(1);
-        return l;
+        Lecture lecture = new Lecture();
+        lecture.setTitle(title);
+        lecture.setContentMarkdown("# Content");
+        lecture.setOrderIndex(1);
+        return lecture;
     }
 
     private Task task(String title) {
-        Task t = new Task();
-        t.setTitle(title);
-        t.setDescription("A description");
-        t.setDifficulty("EASY");
-        t.setTemplateCode("// write here");
-        t.setTestCode("hidden test");
-        t.setSolutionCode("hidden solution");
-        t.setXpReward(100L);
-        return t;
+        Task task = new Task();
+        task.setTitle(title);
+        task.setDescription("A description");
+        task.setDifficulty("EASY");
+        task.setTemplateCode("// write here");
+        task.setTestCode("hidden test");
+        task.setSolutionCode("hidden solution");
+        task.setXpReward(100L);
+        return task;
     }
 }
