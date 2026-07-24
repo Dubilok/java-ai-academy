@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -41,4 +42,7 @@ public class InterviewAnswer {
     @Nullable
     @Column
     private Integer score;
+
+    @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
+    private Instant createdAt;
 }

@@ -11,10 +11,12 @@ import com.javaacademy.platform.interview.dto.SubmitAnswerResponse;
 import com.javaacademy.platform.interview.entity.InterviewAnswer;
 import com.javaacademy.platform.interview.entity.InterviewQuestion;
 import com.javaacademy.platform.interview.entity.InterviewSession;
+import com.javaacademy.platform.interview.enums.InterviewDifficulty;
 import com.javaacademy.platform.interview.enums.InterviewSessionStatus;
 import com.javaacademy.platform.interview.repository.InterviewAnswerRepository;
 import com.javaacademy.platform.interview.repository.InterviewQuestionRepository;
 import com.javaacademy.platform.interview.repository.InterviewSessionRepository;
+import com.javaacademy.platform.interview.util.AdaptiveDifficultySelector;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -114,7 +116,18 @@ public class InterviewSessionService {
         if (candidates.isEmpty()) {
             return null;
         }
-        return pickRandom(candidates);
+
+        InterviewDifficulty currentDifficulty = session.getCurrentQuestion() != null
+                ? session.getCurrentQuestion().getDifficulty()
+                : InterviewDifficulty.INTERMEDIATE;
+        List<Integer> recentScores = answerRepository.findScoresBySessionId(session.getId());
+        InterviewDifficulty targetDifficulty = AdaptiveDifficultySelector.selectNext(currentDifficulty, recentScores);
+
+        List<InterviewQuestion> preferred = candidates.stream()
+                .filter(question -> question.getDifficulty() == targetDifficulty)
+                .toList();
+
+        return pickRandom(preferred.isEmpty() ? candidates : preferred);
     }
 
     private User requireUser(String userEmail) {

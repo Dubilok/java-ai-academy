@@ -63,7 +63,8 @@ class FlywayMigrationTest {
             "idx_interview_answers_question_id",
             "idx_refresh_tokens_user_id",
             "idx_ai_hints_user_id",
-            "idx_ai_hints_task_id");
+            "idx_ai_hints_task_id",
+            "idx_interview_answers_created_at");
 
     @Test
     void allExpectedTables_existAfterMigration() {
@@ -82,7 +83,7 @@ class FlywayMigrationTest {
     @Test
     void allMigrations_areAppliedWithNoChecksumMismatch() {
         MigrationInfo[] applied = flyway.info().applied();
-        assertThat(applied).hasSize(8);
+        assertThat(applied).hasSize(9);
         assertThat(applied[0].getVersion().getVersion()).isEqualTo("1");
         assertThat(applied[0].getDescription()).isEqualTo("initial schema");
         assertThat(applied[0].getState().isApplied()).isTrue();
@@ -115,6 +116,10 @@ class FlywayMigrationTest {
         assertThat(applied[7].getDescription()).isEqualTo("interview session status");
         assertThat(applied[7].getState().isApplied()).isTrue();
         assertThat(applied[7].getState().isFailed()).isFalse();
+        assertThat(applied[8].getVersion().getVersion()).isEqualTo("9");
+        assertThat(applied[8].getDescription()).isEqualTo("interview answers created at");
+        assertThat(applied[8].getState().isApplied()).isTrue();
+        assertThat(applied[8].getState().isFailed()).isFalse();
     }
 
     @Test

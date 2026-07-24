@@ -11,4 +11,7 @@ public interface InterviewAnswerRepository extends JpaRepository<InterviewAnswer
 
     @Query("SELECT a.question.id FROM InterviewAnswer a WHERE a.session.id = :sessionId")
     List<UUID> findAskedQuestionIdsBySessionId(@Param("sessionId") UUID sessionId);
+
+    @Query("SELECT a.score FROM InterviewAnswer a WHERE a.session.id = :sessionId ORDER BY a.createdAt ASC")
+    List<Integer> findScoresBySessionId(@Param("sessionId") UUID sessionId);
 }

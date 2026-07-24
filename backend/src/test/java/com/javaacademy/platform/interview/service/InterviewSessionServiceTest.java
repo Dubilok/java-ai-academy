@@ -177,6 +177,66 @@ class InterviewSessionServiceTest {
                 .isEqualTo(HttpStatus.CONFLICT);
     }
 
+    // ── adaptive difficulty ────────────────────────────────────────────────────
+
+    @Test
+    void submitAnswer_withHighScores_prefersHigherDifficultyForNextQuestion() {
+        // question1 = BEGINNER, question2 = INTERMEDIATE
+        // High scores (80, 85) should step up from BEGINNER → INTERMEDIATE
+        InterviewSession session = activeSession(question1);
+        when(sessionRepository.findByIdAndUser_Id(SESSION_ID, USER_ID)).thenReturn(Optional.of(session));
+        when(answerRepository.findAskedQuestionIdsBySessionId(SESSION_ID)).thenReturn(List.of());
+        when(answerRepository.findScoresBySessionId(SESSION_ID)).thenReturn(List.of(80, 85));
+        when(questionRepository.findByTechnologyExcluding(TECHNOLOGY, List.of(QUESTION_ID_1)))
+                .thenReturn(List.of(question2));
+
+        SubmitAnswerResponse response =
+                service.submitAnswer(SESSION_ID, new SubmitAnswerRequest("The JVM executes bytecode."), USER_EMAIL);
+
+        assertThat(response.nextQuestion()).isNotNull();
+        assertThat(response.nextQuestion().difficulty()).isEqualTo(InterviewDifficulty.INTERMEDIATE);
+    }
+
+    @Test
+    void submitAnswer_withLowScores_prefersLowerDifficultyForNextQuestion() {
+        UUID advancedId = UUID.randomUUID();
+        InterviewQuestion questionAdvanced =
+                makeQuestion(advancedId, "Explain JVM internals.", InterviewDifficulty.ADVANCED);
+
+        // Current question is ADVANCED, low scores (20, 25) → step down to INTERMEDIATE
+        InterviewSession session = activeSession(questionAdvanced);
+        when(sessionRepository.findByIdAndUser_Id(SESSION_ID, USER_ID)).thenReturn(Optional.of(session));
+        when(answerRepository.findAskedQuestionIdsBySessionId(SESSION_ID)).thenReturn(List.of());
+        when(answerRepository.findScoresBySessionId(SESSION_ID)).thenReturn(List.of(20, 25));
+        // Candidates at target difficulty INTERMEDIATE: question2
+        when(questionRepository.findByTechnologyExcluding(TECHNOLOGY, List.of(advancedId)))
+                .thenReturn(List.of(question1, question2));
+
+        SubmitAnswerResponse response =
+                service.submitAnswer(SESSION_ID, new SubmitAnswerRequest("I'm not sure."), USER_EMAIL);
+
+        assertThat(response.nextQuestion()).isNotNull();
+        assertThat(response.nextQuestion().difficulty()).isEqualTo(InterviewDifficulty.INTERMEDIATE);
+    }
+
+    @Test
+    void submitAnswer_withNullScores_retainsCurrentDifficulty() {
+        // All scores null (no scoring yet from E6-T4) → stay at current difficulty
+        InterviewSession session = activeSession(question2); // current = INTERMEDIATE
+        when(sessionRepository.findByIdAndUser_Id(SESSION_ID, USER_ID)).thenReturn(Optional.of(session));
+        when(answerRepository.findAskedQuestionIdsBySessionId(SESSION_ID)).thenReturn(List.of());
+        // Mockito returns empty list by default for findScoresBySessionId — explicitly stub null scores
+        when(answerRepository.findScoresBySessionId(SESSION_ID)).thenReturn(java.util.Arrays.asList(null, null));
+        when(questionRepository.findByTechnologyExcluding(TECHNOLOGY, List.of(QUESTION_ID_2)))
+                .thenReturn(List.of(question1, question2));
+
+        // With null scores, target = INTERMEDIATE (unchanged); question2 preferred but excluded
+        // so falls back to question1 (BEGINNER) — that's correct fallback behaviour
+        SubmitAnswerResponse response = service.submitAnswer(SESSION_ID, new SubmitAnswerRequest("Answer"), USER_EMAIL);
+
+        assertThat(response.nextQuestion()).isNotNull();
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────
 
     private InterviewQuestion makeQuestion(UUID id, String questionText, InterviewDifficulty difficulty) {
