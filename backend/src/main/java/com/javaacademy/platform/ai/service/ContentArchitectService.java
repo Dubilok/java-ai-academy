@@ -1,5 +1,6 @@
 package com.javaacademy.platform.ai.service;
 
+import com.javaacademy.platform.ai.AnthropicProperties;
 import com.javaacademy.platform.ai.client.LlmClient;
 import com.javaacademy.platform.ai.client.LlmException;
 import com.javaacademy.platform.ai.client.LlmRequest;
@@ -15,6 +16,7 @@ import com.javaacademy.platform.sandbox.dto.ExecutionResult;
 import com.javaacademy.platform.sandbox.enums.ExecutionStatus;
 import com.javaacademy.platform.sandbox.util.JavaClassNameExtractor;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
@@ -36,6 +38,7 @@ public class ContentArchitectService {
     private final ContentParser contentParser;
     private final CodeExecutionEngine executionEngine;
     private final AiGenerationLogRepository generationLogRepository;
+    private final AnthropicProperties anthropicProperties;
     private final Clock clock;
     private final String systemPrompt;
 
@@ -45,6 +48,7 @@ public class ContentArchitectService {
             ContentParser contentParser,
             CodeExecutionEngine executionEngine,
             AiGenerationLogRepository generationLogRepository,
+            AnthropicProperties anthropicProperties,
             Clock clock,
             @Value("classpath:prompts/content-architect-system.txt") Resource systemPromptResource)
             throws IOException {
@@ -52,6 +56,7 @@ public class ContentArchitectService {
         this.contentParser = contentParser;
         this.executionEngine = executionEngine;
         this.generationLogRepository = generationLogRepository;
+        this.anthropicProperties = anthropicProperties;
         this.clock = clock;
         this.systemPrompt = systemPromptResource.getContentAsString(StandardCharsets.UTF_8);
     }
@@ -62,12 +67,14 @@ public class ContentArchitectService {
             ContentParser contentParser,
             CodeExecutionEngine executionEngine,
             AiGenerationLogRepository generationLogRepository,
+            AnthropicProperties anthropicProperties,
             Clock clock,
             String systemPrompt) {
         this.llmClient = llmClient;
         this.contentParser = contentParser;
         this.executionEngine = executionEngine;
         this.generationLogRepository = generationLogRepository;
+        this.anthropicProperties = anthropicProperties;
         this.clock = clock;
         this.systemPrompt = systemPrompt;
     }
@@ -76,7 +83,7 @@ public class ContentArchitectService {
      * Generates a lecture + task for the given technology topic, running the self-healing loop
      * (max 3 attempts) until the generated tests pass the generated solution in the sandbox.
      *
-     * <p>On success: saves a {@code SUCCEEDED} log entry and returns the content.
+     * <p>On success: saves a {@code SUCCEEDED} log entry with token/cost/latency telemetry and returns the content.
      * On exhaustion: saves an {@code EXHAUSTED} log entry and throws {@link LlmException} —
      * the caller never receives unverified content.
      *
@@ -84,20 +91,27 @@ public class ContentArchitectService {
      *     or if the LLM response cannot be parsed into valid {@link GeneratedContent}
      */
     public GeneratedContent generateForTopic(String technology) {
+        long startMs = clock.millis();
         String userPrompt = "Generate a lecture and programming task for: " + technology;
         String lastError = null;
+        int totalPromptTokens = 0;
+        int totalCompletionTokens = 0;
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             String prompt = attempt == 1 ? userPrompt : buildSelfHealingPrompt(attempt, userPrompt, lastError);
 
             log.info("Content generation attempt {}/{} for '{}'", attempt, MAX_ATTEMPTS, technology);
-            GeneratedContent content = callAndParse(prompt, attempt);
-            ExecutionResult result = verifyInSandbox(content);
+            ParseResult parseResult = callAndParse(prompt, attempt, startMs, totalPromptTokens, totalCompletionTokens);
+            totalPromptTokens = parseResult.totalPromptTokens;
+            totalCompletionTokens = parseResult.totalCompletionTokens;
+
+            ExecutionResult result = verifyInSandbox(parseResult.content);
 
             if (result.status() == ExecutionStatus.PASSED) {
+                long latencyMs = clock.millis() - startMs;
                 log.info("Content generation succeeded on attempt {}/{} for '{}'", attempt, MAX_ATTEMPTS, technology);
-                saveLog(GenerationOutcome.SUCCEEDED);
-                return content;
+                saveLog(GenerationOutcome.SUCCEEDED, totalPromptTokens, totalCompletionTokens, latencyMs);
+                return parseResult.content;
             }
 
             lastError = result.logs();
@@ -109,19 +123,29 @@ public class ContentArchitectService {
                     truncate(lastError, 500));
         }
 
-        saveLog(GenerationOutcome.EXHAUSTED);
+        long latencyMs = clock.millis() - startMs;
+        saveLog(GenerationOutcome.EXHAUSTED, totalPromptTokens, totalCompletionTokens, latencyMs);
         throw new LlmException(
                 "Content generation for '" + technology + "' failed after " + MAX_ATTEMPTS + " self-healing attempts");
     }
 
-    private GeneratedContent callAndParse(String userPrompt, int attempt) {
+    private ParseResult callAndParse(
+            String userPrompt,
+            int attempt,
+            long startMs,
+            int accumulatedPromptTokens,
+            int accumulatedCompletionTokens) {
         LlmRequest request = new LlmRequest(null, systemPrompt, userPrompt, 4096);
         LlmResponse response = llmClient.complete(request);
+        int newPromptTokens = accumulatedPromptTokens + response.promptTokens();
+        int newCompletionTokens = accumulatedCompletionTokens + response.completionTokens();
 
         try {
-            return contentParser.parse(response.content());
+            GeneratedContent content = contentParser.parse(response.content());
+            return new ParseResult(content, newPromptTokens, newCompletionTokens);
         } catch (LlmException parseException) {
-            saveLog(GenerationOutcome.PARSE_FAILED);
+            long latencyMs = clock.millis() - startMs;
+            saveLog(GenerationOutcome.PARSE_FAILED, newPromptTokens, newCompletionTokens, latencyMs);
             throw new LlmException("Attempt " + attempt + " parse failure: " + parseException.getMessage());
         }
     }
@@ -130,18 +154,36 @@ public class ContentArchitectService {
         String testClassName = JavaClassNameExtractor.extractPublicClassName(content.testCode())
                 .orElse(DEFAULT_TEST_CLASS);
 
-        ExecutionRequest request =
+        ExecutionRequest executionRequest =
                 new ExecutionRequest(UUID.randomUUID(), content.solutionCode(), content.testCode(), testClassName);
-        return executionEngine.execute(request);
+        return executionEngine.execute(executionRequest);
     }
 
-    private void saveLog(GenerationOutcome outcome) {
+    private void saveLog(GenerationOutcome outcome, int promptTokens, int completionTokens, long latencyMs) {
+        BigDecimal costUsd = computeCost(promptTokens, completionTokens);
         AiGenerationLog logEntry = new AiGenerationLog();
         logEntry.setAgent(AgentType.CONTENT_ARCHITECT);
-        logEntry.setModel("content-architect");
+        logEntry.setModel(anthropicProperties.defaultModel());
         logEntry.setOutcome(outcome);
+        logEntry.setPromptTokens(promptTokens);
+        logEntry.setCompletionTokens(completionTokens);
+        logEntry.setCostUsd(costUsd);
+        logEntry.setLatencyMs(latencyMs);
         logEntry.setCreatedAt(Instant.now(clock));
         generationLogRepository.save(logEntry);
+        log.info(
+                "Generation log saved: outcome={} promptTokens={} completionTokens={} costUsd={} latencyMs={}",
+                outcome,
+                promptTokens,
+                completionTokens,
+                costUsd,
+                latencyMs);
+    }
+
+    private BigDecimal computeCost(int promptTokens, int completionTokens) {
+        double inputCost = promptTokens * anthropicProperties.inputCostPerMillionTokens() / 1_000_000.0;
+        double outputCost = completionTokens * anthropicProperties.outputCostPerMillionTokens() / 1_000_000.0;
+        return BigDecimal.valueOf(inputCost + outputCost).setScale(6, java.math.RoundingMode.HALF_UP);
     }
 
     private static String buildSelfHealingPrompt(int attempt, String originalPrompt, String errorOutput) {
@@ -160,4 +202,6 @@ public class ContentArchitectService {
         }
         return text.length() <= maxLength ? text : text.substring(0, maxLength) + "...";
     }
+
+    private record ParseResult(GeneratedContent content, int totalPromptTokens, int totalCompletionTokens) {}
 }

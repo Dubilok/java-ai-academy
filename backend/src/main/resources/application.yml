@@ -38,6 +38,8 @@ app:
       default-model: ${ANTHROPIC_MODEL:claude-sonnet-4-6}
       max-retries: 3
       retry-initial-delay-ms: 1000
+      input-cost-per-million-tokens: ${ANTHROPIC_INPUT_COST_PER_MILLION:3.00}
+      output-cost-per-million-tokens: ${ANTHROPIC_OUTPUT_COST_PER_MILLION:15.00}
 
 server:
   port: 8080

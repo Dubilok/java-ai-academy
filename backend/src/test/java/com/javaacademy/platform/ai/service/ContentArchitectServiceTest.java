@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.javaacademy.platform.ai.AnthropicProperties;
 import com.javaacademy.platform.ai.client.LlmClient;
 import com.javaacademy.platform.ai.client.LlmException;
 import com.javaacademy.platform.ai.client.LlmRequest;
@@ -28,6 +29,9 @@ import org.junit.jupiter.api.Test;
 
 class ContentArchitectServiceTest {
 
+    static final AnthropicProperties TEST_PROPS = new AnthropicProperties(
+            "key", "https://api.anthropic.com", "2023-06-01", "claude-test", 3, 1000L, 3.0, 15.0);
+
     LlmClient llmClient;
     ContentParser contentParser;
     CodeExecutionEngine executionEngine;
@@ -45,6 +49,7 @@ class ContentArchitectServiceTest {
                 contentParser,
                 executionEngine,
                 generationLogRepository,
+                TEST_PROPS,
                 Clock.systemUTC(),
                 "test-system-prompt");
     }
@@ -75,6 +80,23 @@ class ContentArchitectServiceTest {
 
         verify(generationLogRepository, times(1))
                 .save(argThat((AiGenerationLog logEntry) -> logEntry.getOutcome() == GenerationOutcome.SUCCEEDED));
+    }
+
+    @Test
+    void generateForTopic_success_savesTokenCountsAndCost() {
+        when(llmClient.complete(any(LlmRequest.class))).thenReturn(new LlmResponse("{}", 1000, 500));
+        when(contentParser.parse(any())).thenReturn(sampleContent());
+        when(executionEngine.execute(any())).thenReturn(ExecutionResult.passed("Tests passed", 500L));
+
+        service.generateForTopic("Java Records");
+
+        verify(generationLogRepository, times(1))
+                .save(argThat((AiGenerationLog logEntry) -> logEntry.getPromptTokens() == 1000
+                        && logEntry.getCompletionTokens() == 500
+                        && logEntry.getCostUsd() != null
+                        && logEntry.getCostUsd().compareTo(java.math.BigDecimal.ZERO) > 0
+                        && logEntry.getLatencyMs() != null
+                        && logEntry.getModel().equals("claude-test")));
     }
 
     // ── self-healing ───────────────────────────────────────────────────────────

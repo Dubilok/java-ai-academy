@@ -25,7 +25,7 @@ import org.springframework.web.client.RestClient;
 class AnthropicLlmClientTest {
 
     static final AnthropicProperties PROPS = new AnthropicProperties(
-            "test-api-key", "https://api.anthropic.com", "2023-06-01", "claude-sonnet-4-6", 2, 10L);
+            "test-api-key", "https://api.anthropic.com", "2023-06-01", "claude-sonnet-4-6", 2, 10L, 3.0, 15.0);
 
     static final String SUCCESS_RESPONSE =
             """

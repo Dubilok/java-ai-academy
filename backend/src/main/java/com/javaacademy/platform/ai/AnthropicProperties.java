@@ -9,4 +9,6 @@ public record AnthropicProperties(
         String apiVersion,
         String defaultModel,
         int maxRetries,
-        long retryInitialDelayMs) {}
+        long retryInitialDelayMs,
+        double inputCostPerMillionTokens,
+        double outputCostPerMillionTokens) {}
