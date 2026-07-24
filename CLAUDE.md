@@ -4,7 +4,7 @@
 > It is Claude's persistent memory across sessions. Read it fully before doing any work.
 > Every completed task, decision, and blocker is recorded here — not in chat history.
 
-**Status:** E4 next · **Last updated:** 2026-07-24 · **Doc version:** 1.0
+**Status:** E5 in progress · **Last updated:** 2026-07-24 · **Doc version:** 1.0
 
 ---
 
@@ -536,7 +536,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E5-T1 Gemini client behind the same `LlmClient` interface
 - [x] E5-T2 Hint prompt grounded in: task text, student source, compiler/test output
 - [x] E5-T3 **Anti-leak guard**: post-filter rejects solution code; retry once with a stricter instruction, then degrade to a canned hint
-- [ ] E5-T4 `POST /tasks/{id}/ai-hint` + per-user rate limit + hint history
+- [x] E5-T4 `POST /tasks/{id}/ai-hint` + per-user rate limit + hint history
 - [ ] E5-T5 Golden-set test: 10 broken submissions → assert hints contain no compilable solution
 
 ### E6 — Interview trainer & A4 Mock Interviewer
@@ -702,6 +702,7 @@ cd ide-plugin
 | 2026-07-24 | E5-T2 | ✅ | `SocraticMentorService` @Service: injects `@Qualifier("geminiLlmClient") LlmClient` + `socratic-mentor-system.txt` prompt resource; `generateHint(HintRequest)` builds a delimited prompt wrapping task title, task description, student source, and error output (prompt-injection safe); truncates source at 4096 chars, error at 2048 chars; null errorOutput gets placeholder text; `docs/prompts/socratic-mentor-system.txt` system prompt enforces 1-2 Socratic questions, bans solution code and full method bodies; `CT_CONSTRUCTOR_THROW` SpotBugs excluded (same reason as ContentArchitectService); 9 unit tests cover grounding, delimiters, null/oversized inputs |
 | 2026-07-24 | E5-T3 | ✅ | `HintLeakDetector` @UtilityClass in `ai/util/`: extracts all code fences via regex, counts non-blank/non-comment lines per fence, flags any fence with >3 substantive lines as solution leakage; `SocraticMentorService.generateHint()` now runs the leak check on the first hint — if flagged, retries once with `CRITICAL VIOLATION` warning appended to the prompt; if retry also leaks, returns safe `CANNED_HINT`; max 2 LLM calls total; 10 HintLeakDetectorTest unit tests (clean/leaky heuristic cases) + 5 SocraticMentorServiceTest anti-leak path tests; 325 tests pass |
 | 2026-07-24 | E3-T1 | ✅ | `sandbox-image/Dockerfile` on `eclipse-temurin:21-jdk-jammy` pinned by digest (sha256:9d8dcf99…); JUnit Platform Console Standalone 1.10.3 sha256-verified at build time; non-root user uid=1000; `build.sh` builds image, verifies `java -version` under all §6.2 flags, confirms jar present, asserts no leaked containers; `openjdk:21-slim` noted as retired in §4 + README |
+| 2026-07-24 | E5-T4 | ✅ | `POST /api/v1/tasks/{taskId}/ai-hint` endpoint; `V6__ai_hints.sql` creates `ai_hints` table with user/task FK and indexes; `AiRateLimiter` fixed-window Redis rate limit (20 hints/hour, key `rate:ai-hint:{userId}:{hourBucket}`); `HintService` looks up user by email (JWT principal), checks rate limit, fetches last FAILED submission logs for context, calls `SocraticMentorService`, persists `AiHint`; fixed `UnfinishedStubbingException` in `HintServiceTest` (nested `when(mock.method())` inside outer `when()` thenReturn arg); updated `FlywayMigrationTest` to expect V6 + ai_hints table/indexes; 9 unit tests (HintServiceTest) + 4 slice tests (HintControllerTest); 348 tests pass |
 | 2026-07-24 | E3-T2 | ✅ | `DockerCodeExecutionService` implements `CodeExecutionEngine`; all §6.2 flags in `buildHostConfig`; `FrameCollector` (non-deprecated `ResultCallbackTemplate`) caps logs at 64KB; `Semaphore` for bounded concurrency; cleanup in `finally` (removeQuietly + deleteWorkDir); `SandboxConfig` bean wires `ApacheDockerHttpClient`; `SandboxProperties` @ConfigurationProperties; 14 unit tests (Mockito RETURNS_SELF for fluent docker-java builders); all tests pass |
 | 2026-07-24 | E3-T3 | ✅ | `SandboxHardeningTest` (15 tests): one test per §6.2 flag — networkMode=none, memory=128MB, memorySwap=memory, cpuQuota=50% of period, pidsLimit=64, readonlyRootfs=true, capDrop=ALL, securityOpts=no-new-privileges, tmpfs=/tmp noexec, workdir bind mount, user=1000:0 (via verify), LOG_CAP_BYTES=64KB, timeout=5s; `LOG_CAP_BYTES` promoted to package-private for test access; all tests pass |
 | 2026-07-24 | E3-T4 | ✅ | `SandboxLeakTest` (4 tests): 50-iteration unit test rotates through start-failure/timeout/happy-path modes and asserts `removeContainerCmd` called exactly 50 times; null-id guard test asserts remove NOT called when createContainer fails; timeout path asserts kill then remove; real-Docker integration test runs 5 actual submissions and asserts `listContainersCmd --all` with runner image filter returns empty; `DE_MIGHT_IGNORE` added to spotbugs-exclude for test classes |

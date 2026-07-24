@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.javaacademy.platform.ai.service.GenerationJobService;
+import com.javaacademy.platform.ai.service.HintService;
 import com.javaacademy.platform.auth.dto.AuthResponse;
 import com.javaacademy.platform.auth.service.AuthService;
 import com.javaacademy.platform.auth.service.JwtService;
@@ -48,6 +49,9 @@ class SecurityFilterChainTest {
 
     @MockBean
     GenerationJobService generationJobService;
+
+    @MockBean
+    HintService hintService;
 
     // ── public paths ───────────────────────────────────────────────────────────
 
