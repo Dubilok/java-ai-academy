@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-public class JwtService {
+public final class JwtService {
 
     private final SecretKey signingKey;
     private final long accessTokenExpiryMs;

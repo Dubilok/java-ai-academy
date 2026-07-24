@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+
+    <!--
+      JPA entities hold references to other entities by design — that is how the ORM
+      relationship graph works. EI_EXPOSE_REP / EI_EXPOSE_REP2 would require defensive
+      copies of every entity reference, which breaks lazy loading and is not a real
+      security concern inside a server-side ORM layer.
+    -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Or>
+            <Package name="com.javaacademy.platform.catalog"/>
+            <Package name="com.javaacademy.platform.progress"/>
+            <Package name="com.javaacademy.platform.interview"/>
+            <Package name="com.javaacademy.platform.auth"/>
+        </Or>
+    </Match>
+
+    <!-- Spring @Configuration classes use inheritance patterns SpotBugs flags -->
+    <Match>
+        <Bug pattern="BC_UNCONFIRMED_CAST_OF_RETURN_VALUE"/>
+    </Match>
+
+    <!-- Test classes: intentional null usage, magic numbers, etc. -->
+    <Match>
+        <Class name="~.*Test"/>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE,UWF_UNWRITTEN_FIELD,DLS_DEAD_LOCAL_STORE"/>
+    </Match>
+
+</FindBugsFilter>

@@ -221,6 +221,8 @@ java-ai-academy/
 | Runner image | `openjdk:21-slim` + JUnit Platform Console | 1.10.x | Built once, pinned by digest |
 | Build | Gradle Kotlin DSL | 8.x | Version catalog in `gradle/libs.versions.toml` |
 | Testing | JUnit 5, AssertJ, Testcontainers, MockMvc, ArchUnit | — | Testcontainers for every DB/Redis/Docker test |
+| Static analysis | SpotBugs (plugin 5.2.5, tool 4.8.6) | — | Runs as part of `check`; exclude filter at `backend/config/spotbugs-exclude.xml` |
+| PR review | Claude Code GitHub Action | v1 | Posts inline review comments on every PR; needs `ANTHROPIC_API_KEY` repo secret |
 | Frontend | Next.js (App Router) | 14.x | TypeScript strict, RSC by default |
 | Styling | Tailwind CSS | 3.4 | Design tokens in §11 |
 | Editor | `@monaco-editor/react` | latest | Java syntax, one shared config module |
@@ -250,6 +252,7 @@ java-ai-academy/
 - **Money/points:** `long` for XP, never floating point.
 - **Logging:** SLF4J with parameterised messages. **Never log** JWTs, API keys, password hashes, or full student source code.
 - Formatting: Spotless with `palantir-java-format`, 4-space indent, 120-col soft limit. `./gradlew spotlessApply` before commit.
+- Static analysis: SpotBugs runs on `check`. `EI_EXPOSE_REP2` is suppressed for JPA entity packages (storing entity refs is correct ORM usage). Mark Spring service classes that can throw from their constructor as `final` to satisfy SEI CERT OBJ-11 (see `JwtService`).
 
 ### 5.2 Kotlin (IDE plugin)
 
@@ -545,7 +548,7 @@ docker compose -f infra/docker-compose.yml ps         # both healthy?
 ### Backend
 ```bash
 cd backend
-./gradlew spotlessApply build                 # format + compile + test
+./gradlew spotlessApply build                 # format + compile + test + SpotBugs
 ./gradlew bootRun --args='--spring.profiles.active=local'
 curl -s localhost:8080/actuator/health        # {"status":"UP"}
 ./gradlew test --tests '*SandboxAdversarialTest'
@@ -620,6 +623,7 @@ cd ide-plugin
 | 2026-07-24 | E1-T5 | ✅ | `refresh_tokens` table (V2 migration), `RefreshToken` entity, `POST /auth/refresh`; SHA-256 hashed tokens, reuse detection revokes all user tokens; 16 unit tests (AuthServiceTest) + 5 slice tests (AuthControllerTest) + 6 repo tests (RefreshTokenRepositoryTest, Docker-blocked) all pass where runnable |
 | 2026-07-24 | E1-T4 | ✅ | `POST /auth/register` + `/auth/login`; BCrypt(12); HS256 JWT (15-min); `AuthControllerTest` (8 tests, @WebMvcTest — no Docker needed) all pass; refreshToken is placeholder UUID until E1-T5 |
 | 2026-07-24 | E1-T6 | ✅ | `JwtAuthenticationFilter` (Bearer token → `UsernamePasswordAuthenticationToken` with role); `SecurityConfig` wires filter, admin path requires ROLE_ADMIN; 6 unit tests (JwtAuthenticationFilterTest) + 10 slice tests (SecurityFilterChainTest) all pass |
+| 2026-07-24 | infra | ✅ | SpotBugs 4.8.6 (Gradle plugin 5.2.5) added to backend `check` task; exclude filter suppresses JPA false positives; `JwtService` marked `final` (SEI CERT OBJ-11 fix); Claude Code GitHub Action added to CI for automated PR review |
 
 ---
 

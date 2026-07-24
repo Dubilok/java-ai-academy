@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
     alias(libs.plugins.spotless)
+    alias(libs.plugins.spotbugs)
 }
 
 group = "com.javaacademy"
@@ -54,4 +55,17 @@ spotless {
         trimTrailingWhitespace()
         endWithNewline()
     }
+}
+
+spotbugs {
+    toolVersion = "4.8.6"
+    ignoreFailures = false
+    effort.set(com.github.spotbugs.snom.Effort.MAX)
+    reportLevel.set(com.github.spotbugs.snom.Confidence.MEDIUM)
+    excludeFilter = file("config/spotbugs-exclude.xml")
+}
+
+tasks.withType<com.github.spotbugs.snom.SpotBugsTask> {
+    reports.create("html") { required = true }
+    reports.create("xml")  { required = false }
 }
