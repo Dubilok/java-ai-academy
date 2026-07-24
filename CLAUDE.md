@@ -516,7 +516,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E3-T2 `DockerCodeExecutionService`: materialise workdir, compile, run, collect result
 - [x] E3-T3 Apply **every** hardening flag in §6.2; a test asserts each one is set on the container config
 - [x] E3-T4 Timeout + hard kill + guaranteed cleanup in `finally`; leak test runs 50 submissions and asserts 0 containers remain
-- [ ] E3-T5 Parse JUnit XML into `ExecutionResult(status, failedTests, logs, durationMs)`
+- [x] E3-T5 Parse JUnit XML into `ExecutionResult(status, failedTests, logs, durationMs)`
 - [ ] E3-T6 Redis-backed submission queue + worker with bounded concurrency
 - [ ] E3-T7 `POST /tasks/{id}/submissions` + polling endpoint, wired end to end
 - [ ] E3-T8 Adversarial suite: infinite loop, fork bomb, 2GB alloc, network call, file write outside workdir, `System.exit(0)`, 10MB stdout — all contained, all verdicts correct
@@ -691,6 +691,7 @@ cd ide-plugin
 | 2026-07-24 | E3-T2 | ✅ | `DockerCodeExecutionService` implements `CodeExecutionEngine`; all §6.2 flags in `buildHostConfig`; `FrameCollector` (non-deprecated `ResultCallbackTemplate`) caps logs at 64KB; `Semaphore` for bounded concurrency; cleanup in `finally` (removeQuietly + deleteWorkDir); `SandboxConfig` bean wires `ApacheDockerHttpClient`; `SandboxProperties` @ConfigurationProperties; 14 unit tests (Mockito RETURNS_SELF for fluent docker-java builders); all tests pass |
 | 2026-07-24 | E3-T3 | ✅ | `SandboxHardeningTest` (15 tests): one test per §6.2 flag — networkMode=none, memory=128MB, memorySwap=memory, cpuQuota=50% of period, pidsLimit=64, readonlyRootfs=true, capDrop=ALL, securityOpts=no-new-privileges, tmpfs=/tmp noexec, workdir bind mount, user=1000:0 (via verify), LOG_CAP_BYTES=64KB, timeout=5s; `LOG_CAP_BYTES` promoted to package-private for test access; all tests pass |
 | 2026-07-24 | E3-T4 | ✅ | `SandboxLeakTest` (4 tests): 50-iteration unit test rotates through start-failure/timeout/happy-path modes and asserts `removeContainerCmd` called exactly 50 times; null-id guard test asserts remove NOT called when createContainer fails; timeout path asserts kill then remove; real-Docker integration test runs 5 actual submissions and asserts `listContainersCmd --all` with runner image filter returns empty; `DE_MIGHT_IGNORE` added to spotbugs-exclude for test classes |
+| 2026-07-24 | E3-T5 | ✅ | `JUnitXmlParser.parseFailedTestCount` reads `TEST-<className>.xml` from report dir, parses `failures+errors` from `<testsuite>` attributes (XXE protected), returns `OptionalInt` (empty = file absent); `ExecutionResult` gains `failedTests` field; service prefers XML over exit code; `JUnitXmlParserTest` (4 tests) with passing/failing XML fixtures under `src/test/resources/sandbox/`; all tests pass |
 
 ---
 

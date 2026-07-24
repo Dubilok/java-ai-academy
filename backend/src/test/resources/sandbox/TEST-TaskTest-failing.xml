@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="TaskTest" tests="3" failures="2" errors="1" skipped="0" time="0.200">
+  <testcase name="firstTest()" classname="TaskTest" time="0.01">
+    <failure message="expected: 1 but was: 2">org.opentest4j.AssertionFailedError: expected: 1 but was: 2</failure>
+  </testcase>
+  <testcase name="secondTest()" classname="TaskTest" time="0.05">
+    <failure message="expected: true but was: false">org.opentest4j.AssertionFailedError: expected: true but was: false</failure>
+  </testcase>
+  <testcase name="thirdTest()" classname="TaskTest" time="0.14">
+    <error message="java.lang.NullPointerException">java.lang.NullPointerException at TaskTest.java:30</error>
+  </testcase>
+</testsuite>

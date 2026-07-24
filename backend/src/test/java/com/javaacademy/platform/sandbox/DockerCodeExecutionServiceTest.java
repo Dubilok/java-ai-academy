@@ -127,7 +127,7 @@ class DockerCodeExecutionServiceTest {
 
     @Test
     void executionResult_failed_hasCorrectStatus() {
-        ExecutionResult result = ExecutionResult.failed("err", 200L);
+        ExecutionResult result = ExecutionResult.failed(2, "err", 200L);
         assertThat(result.status()).isEqualTo(ExecutionStatus.FAILED);
     }
 

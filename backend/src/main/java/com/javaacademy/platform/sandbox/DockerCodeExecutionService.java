@@ -11,6 +11,7 @@ import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.Volume;
 import com.javaacademy.platform.sandbox.dto.ExecutionRequest;
 import com.javaacademy.platform.sandbox.dto.ExecutionResult;
+import com.javaacademy.platform.sandbox.util.JUnitXmlParser;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -76,10 +77,20 @@ public final class DockerCodeExecutionService implements CodeExecutionEngine {
             }
 
             String logs = collectLogs(containerId);
-            int exitCode = inspectExitCode(containerId);
             long durationMs = System.currentTimeMillis() - startMs;
 
-            return exitCode == 0 ? ExecutionResult.passed(logs, durationMs) : ExecutionResult.failed(logs, durationMs);
+            var xmlResult = JUnitXmlParser.parseFailedTestCount(hostWorkDir, request.testClassName());
+            if (xmlResult.isPresent()) {
+                int failedTests = xmlResult.getAsInt();
+                return failedTests == 0
+                        ? ExecutionResult.passed(logs, durationMs)
+                        : ExecutionResult.failed(failedTests, logs, durationMs);
+            }
+            // XML absent means compilation failed — fall back to exit code
+            int exitCode = inspectExitCode(containerId);
+            return exitCode == 0
+                    ? ExecutionResult.passed(logs, durationMs)
+                    : ExecutionResult.failed(0, logs, durationMs);
 
         } catch (Exception exception) {
             log.error("Sandbox execution error for task {}", request.taskId(), exception);

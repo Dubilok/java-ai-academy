@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="TaskTest" tests="3" failures="0" errors="0" skipped="0" time="0.123">
+  <testcase name="firstTest()" classname="TaskTest" time="0.01"/>
+  <testcase name="secondTest()" classname="TaskTest" time="0.05"/>
+  <testcase name="thirdTest()" classname="TaskTest" time="0.06"/>
+</testsuite>
