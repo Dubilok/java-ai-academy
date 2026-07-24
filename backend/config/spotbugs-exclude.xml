@@ -33,13 +33,17 @@
     </Match>
 
     <!--
-      ContentArchitectService reads a classpath Resource in its constructor (to load the system
-      prompt), which throws checked IOException. The class cannot be marked final because Spring
+      AI service classes read a classpath Resource in their primary constructor (to load the system
+      prompt), which throws checked IOException. The classes cannot be marked final because Spring
       CGLIB proxying requires a subclassable bean. SEI CERT OBJ-11 concern is negligible here
       because no subclasses exist and the resource path is fully controlled by the application.
     -->
     <Match>
         <Class name="com.javaacademy.platform.ai.service.ContentArchitectService"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+    <Match>
+        <Class name="com.javaacademy.platform.ai.service.SocraticMentorService"/>
         <Bug pattern="CT_CONSTRUCTOR_THROW"/>
     </Match>
 
