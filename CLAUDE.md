@@ -4,7 +4,7 @@
 > It is Claude's persistent memory across sessions. Read it fully before doing any work.
 > Every completed task, decision, and blocker is recorded here — not in chat history.
 
-**Status:** E2 in progress · **Last updated:** 2026-07-24 · **Doc version:** 1.0
+**Status:** E3 in progress · **Last updated:** 2026-07-24 · **Doc version:** 1.0
 
 ---
 
@@ -518,7 +518,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E3-T4 Timeout + hard kill + guaranteed cleanup in `finally`; leak test runs 50 submissions and asserts 0 containers remain
 - [x] E3-T5 Parse JUnit XML into `ExecutionResult(status, failedTests, logs, durationMs)`
 - [x] E3-T6 Redis-backed submission queue + worker with bounded concurrency
-- [ ] E3-T7 `POST /tasks/{id}/submissions` + polling endpoint, wired end to end
+- [x] E3-T7 `POST /tasks/{id}/submissions` + polling endpoint, wired end to end
 - [ ] E3-T8 Adversarial suite: infinite loop, fork bomb, 2GB alloc, network call, file write outside workdir, `System.exit(0)`, 10MB stdout — all contained, all verdicts correct
 - [ ] E3-T9 SSE verdict stream
 
@@ -687,6 +687,7 @@ cd ide-plugin
 | 2026-07-24 | E2-T4 | ✅ | `GamificationService.awardTaskCompletion(userId, taskId)` adds `task.xpReward` XP + 1 crystal to user on first pass; `calculateLevel(xpPoints)` uses `min(50, floor(sqrt(xpPoints/100))+1)` formula; wired into `ProgressService.recordAttempt` — gamification fires only when `firstPass=true`; 10 unit tests (GamificationServiceTest) covering XP award, crystal award, user-not-found, and 6 level thresholds; 2 new ProgressServiceTest cases prove award fires once and never on repeat pass; 168 tests pass |
 | 2026-07-24 | E2-T5 | ✅ | `GET /api/v1/me` returns profile (id, email, role, xpPoints, crystals, level, streak=0, createdAt); `GET /api/v1/me/progress` returns per-course completion (totalTasks, passedTasks, completionPercent via JPQL COUNT queries); `MeService` + `MeController`; 3 DTOs; `XpCalculator` util; fixed `SecurityFilterChainTest` (added missing `@MockBean MeService` + updated 2 assertions now that MeController handles /me); 8 unit tests (MeServiceTest) + 4 slice tests (MeControllerTest); all tests pass |
 | 2026-07-24 | E2-T6 | ✅ | `V4__seed_data.sql`: Java 21 Fundamentals course (published), 1 module, 3 lectures (Strings, Control Flow, Methods), 5 tasks with template/test/solution code; dollar-quoted DO block avoids escaping Java code in SQL; `SeedDataTest` (9 tests) verifies counts, ordering, and code fields; `FlywayMigrationTest` updated to expect 4 migrations; all tests pass |
+| 2026-07-24 | E3-T7 | ✅ | `POST /api/v1/tasks/{taskId}/submissions` → 202 + submissionId; `GET /api/v1/submissions/{id}` → status/logs/durationMs; `SubmitCodeRequest` validates `@NotBlank @Size(max=65536)`; `SubmissionService.createSubmission/findSubmission`; `SubmissionRepository.findByIdAndUser_Id` for ownership check; 8 `@WebMvcTest` slice tests (SubmissionControllerTest) + 7 unit tests (SubmissionServiceTest); `SecurityFilterChainTest` updated with `@MockBean SubmissionService`; all tests pass |
 | 2026-07-24 | E3-T1 | ✅ | `sandbox-image/Dockerfile` on `eclipse-temurin:21-jdk-jammy` pinned by digest (sha256:9d8dcf99…); JUnit Platform Console Standalone 1.10.3 sha256-verified at build time; non-root user uid=1000; `build.sh` builds image, verifies `java -version` under all §6.2 flags, confirms jar present, asserts no leaked containers; `openjdk:21-slim` noted as retired in §4 + README |
 | 2026-07-24 | E3-T2 | ✅ | `DockerCodeExecutionService` implements `CodeExecutionEngine`; all §6.2 flags in `buildHostConfig`; `FrameCollector` (non-deprecated `ResultCallbackTemplate`) caps logs at 64KB; `Semaphore` for bounded concurrency; cleanup in `finally` (removeQuietly + deleteWorkDir); `SandboxConfig` bean wires `ApacheDockerHttpClient`; `SandboxProperties` @ConfigurationProperties; 14 unit tests (Mockito RETURNS_SELF for fluent docker-java builders); all tests pass |
 | 2026-07-24 | E3-T3 | ✅ | `SandboxHardeningTest` (15 tests): one test per §6.2 flag — networkMode=none, memory=128MB, memorySwap=memory, cpuQuota=50% of period, pidsLimit=64, readonlyRootfs=true, capDrop=ALL, securityOpts=no-new-privileges, tmpfs=/tmp noexec, workdir bind mount, user=1000:0 (via verify), LOG_CAP_BYTES=64KB, timeout=5s; `LOG_CAP_BYTES` promoted to package-private for test access; all tests pass |

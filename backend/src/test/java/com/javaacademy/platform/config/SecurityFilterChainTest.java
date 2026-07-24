@@ -12,6 +12,7 @@ import com.javaacademy.platform.auth.service.AuthService;
 import com.javaacademy.platform.auth.service.JwtService;
 import com.javaacademy.platform.catalog.service.CatalogService;
 import com.javaacademy.platform.progress.service.MeService;
+import com.javaacademy.platform.progress.service.SubmissionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -40,6 +41,9 @@ class SecurityFilterChainTest {
 
     @MockBean
     MeService meService;
+
+    @MockBean
+    SubmissionService submissionService;
 
     // ── public paths ───────────────────────────────────────────────────────────
 
