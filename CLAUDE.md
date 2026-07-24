@@ -460,8 +460,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 
 ### E1 — Backend core: persistence & auth
 - [x] E1-T1 Gradle Kotlin DSL build, version catalog, Spring Boot 3.3 skeleton, `/actuator/health` returns UP
-- [~] E1-T2 Flyway migration `V1__initial_schema.sql` (all 12 tables in §7) — code complete, tests blocked by Docker overlay2 read-only filesystem; restart Docker Desktop then run `./gradlew test`
-- [~] E1-T3 JPA entities + repositories; Testcontainers Postgres test proves every mapping loads — code complete, tests blocked by Docker overlay2 read-only filesystem; restart Docker Desktop then run `./gradlew test`
+- [x] E1-T2 Flyway migration `V1__initial_schema.sql` (all 12 tables in §7)
+- [x] E1-T3 JPA entities + repositories; Testcontainers Postgres test proves every mapping loads
 - [x] E1-T4 `POST /auth/register` + `/auth/login`: BCrypt(12), JWT issue, integration-tested
 - [x] E1-T5 Refresh-token rotation with reuse detection
 - [x] E1-T6 `SecurityFilterChain`: public/student/admin rules; test asserts 401 and 403 paths
@@ -469,7 +469,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E1-T8 ArchUnit rules for §3 package boundaries and no-entity-in-controller
 
 ### E2 — Catalog & progress
-- [ ] E2-T1 Course/module/lecture/task read endpoints with cursor pagination
+- [x] E2-T1 Course/module/lecture/task read endpoints with cursor pagination
 - [ ] E2-T2 Task DTO mapping that **provably** omits `testCode` (test asserts absence in JSON)
 - [ ] E2-T3 `user_progress` upsert + attempt counting
 - [ ] E2-T4 XP/level/crystal rules in one `GamificationService`; idempotent award test
@@ -644,6 +644,9 @@ cd ide-plugin
 | 2026-07-24 | infra | ✅ | SpotBugs 4.8.6 (Gradle plugin 5.2.5) added to backend `check` task; exclude filter suppresses JPA false positives; `JwtService` marked `final` (SEI CERT OBJ-11 fix); Claude Code GitHub Action added to CI for automated PR review |
 | 2026-07-24 | E1-T7 | ✅ | `GlobalExceptionHandler` (@RestControllerAdvice): `ApiException` → mapped status, `MethodArgumentNotValidException` → 400 + field errors array (JSON Pointer `/field`), `HttpMessageNotReadableException` → 400, `ResponseStatusException` → mapped status, `NoHandlerFoundException`/`NoResourceFoundException` → 404, catch-all `Exception` → 500; 11 unit tests + 9 WebMvcTest slice tests all pass |
 | 2026-07-24 | E1-T8 | ✅ | ArchUnit 1.3.0 added to test deps; `ArchitectureTest` (3 rules): no top-level layer packages, all classes in allowed feature packages, controller methods must not return @Entity types; all 3 rules pass with zero violations |
+| 2026-07-24 | E1-T2 | ✅ | Docker now running; `FlywayMigrationTest` + `JpaMappingTest` pass with Testcontainers; fixed `RefreshTokenRepositoryTest` (missing `@AutoConfigureTestDatabase(replace=NONE)`); fixed `FlywayMigrationTest` to expect both V1 + V2 migrations |
+| 2026-07-24 | E1-T3 | ✅ | All 12 JPA entity mappings confirmed by `JpaMappingTest` running against real Postgres via Testcontainers |
+| 2026-07-24 | E2-T1 | ✅ | `GET /courses` (public, cursor-paginated), `GET /courses/{id}`, `GET /lectures/{id}`, `GET /tasks/{id}`; `CatalogService` + `CatalogController`; 8 DTOs; cursor = Base64URL(epochMilli~uuid); TaskResponse provably omits testCode/solutionCode; 14 unit tests (CatalogServiceTest) + 14 slice tests (CatalogControllerTest); all 126 tests pass |
 
 ---
 

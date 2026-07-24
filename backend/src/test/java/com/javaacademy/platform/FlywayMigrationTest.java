@@ -31,6 +31,7 @@ class FlywayMigrationTest {
 
     private static final List<String> EXPECTED_TABLES = List.of(
             "users",
+            "refresh_tokens",
             "courses",
             "modules",
             "lectures",
@@ -58,7 +59,8 @@ class FlywayMigrationTest {
             "idx_interview_questions_difficulty",
             "idx_interview_sessions_user_id",
             "idx_interview_answers_session_id",
-            "idx_interview_answers_question_id");
+            "idx_interview_answers_question_id",
+            "idx_refresh_tokens_user_id");
 
     @Test
     void allExpectedTables_existAfterMigration() {
@@ -75,13 +77,17 @@ class FlywayMigrationTest {
     }
 
     @Test
-    void migration_v1_isAppliedAndHasNoChecksum_mismatch() {
+    void allMigrations_areAppliedWithNoChecksumMismatch() {
         MigrationInfo[] applied = flyway.info().applied();
-        assertThat(applied).hasSize(1);
+        assertThat(applied).hasSize(2);
         assertThat(applied[0].getVersion().getVersion()).isEqualTo("1");
         assertThat(applied[0].getDescription()).isEqualTo("initial schema");
         assertThat(applied[0].getState().isApplied()).isTrue();
         assertThat(applied[0].getState().isFailed()).isFalse();
+        assertThat(applied[1].getVersion().getVersion()).isEqualTo("2");
+        assertThat(applied[1].getDescription()).isEqualTo("refresh tokens");
+        assertThat(applied[1].getState().isApplied()).isTrue();
+        assertThat(applied[1].getState().isFailed()).isFalse();
     }
 
     @Test
