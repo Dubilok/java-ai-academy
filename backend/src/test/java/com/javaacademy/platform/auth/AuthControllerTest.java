@@ -31,6 +31,9 @@ class AuthControllerTest {
     @MockBean
     AuthService authService;
 
+    @MockBean
+    JwtService jwtService;
+
     @Test
     void register_withValidBody_returns201WithTokens() throws Exception {
         given(authService.register(any())).willReturn(new AuthResponse("access-token", "refresh-token"));
