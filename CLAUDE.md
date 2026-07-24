@@ -448,7 +448,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E1-T5 Refresh-token rotation with reuse detection
 - [x] E1-T6 `SecurityFilterChain`: public/student/admin rules; test asserts 401 and 403 paths
 - [x] E1-T7 Global `ProblemDetail` exception handler + validation error shape
-- [ ] E1-T8 ArchUnit rules for §3 package boundaries and no-entity-in-controller
+- [x] E1-T8 ArchUnit rules for §3 package boundaries and no-entity-in-controller
 
 ### E2 — Catalog & progress
 - [ ] E2-T1 Course/module/lecture/task read endpoints with cursor pagination
@@ -625,6 +625,7 @@ cd ide-plugin
 | 2026-07-24 | E1-T6 | ✅ | `JwtAuthenticationFilter` (Bearer token → `UsernamePasswordAuthenticationToken` with role); `SecurityConfig` wires filter, admin path requires ROLE_ADMIN; 6 unit tests (JwtAuthenticationFilterTest) + 10 slice tests (SecurityFilterChainTest) all pass |
 | 2026-07-24 | infra | ✅ | SpotBugs 4.8.6 (Gradle plugin 5.2.5) added to backend `check` task; exclude filter suppresses JPA false positives; `JwtService` marked `final` (SEI CERT OBJ-11 fix); Claude Code GitHub Action added to CI for automated PR review |
 | 2026-07-24 | E1-T7 | ✅ | `GlobalExceptionHandler` (@RestControllerAdvice): `ApiException` → mapped status, `MethodArgumentNotValidException` → 400 + field errors array (JSON Pointer `/field`), `HttpMessageNotReadableException` → 400, `ResponseStatusException` → mapped status, `NoHandlerFoundException`/`NoResourceFoundException` → 404, catch-all `Exception` → 500; 11 unit tests + 9 WebMvcTest slice tests all pass |
+| 2026-07-24 | E1-T8 | ✅ | ArchUnit 1.3.0 added to test deps; `ArchitectureTest` (3 rules): no top-level layer packages, all classes in allowed feature packages, controller methods must not return @Entity types; all 3 rules pass with zero violations |
 
 ---
 

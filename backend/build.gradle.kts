@@ -43,6 +43,7 @@ dependencies {
     testImplementation(libs.spring.security.test)
     testImplementation(libs.testcontainers.junit5)
     testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.archunit.junit5)
 }
 
 tasks.withType<Test> {
