@@ -46,33 +46,33 @@ public class ProgressService {
                 .findByUserIdAndTaskId(userId, taskId)
                 .orElseGet(() -> newProgress(userId, taskId));
 
-        boolean wasAlreadyPassed = progress.getStatus() == ProgressStatus.PASSED;
+        boolean isAlreadyPassed = progress.getStatus() == ProgressStatus.PASSED;
 
         progress.setAttempts(progress.getAttempts() + 1);
         progress.setSubmittedCode(submittedCode);
         progress.setUpdatedAt(clock.instant());
 
-        if (passed && !wasAlreadyPassed) {
+        if (passed && !isAlreadyPassed) {
             progress.setStatus(ProgressStatus.PASSED);
-        } else if (!passed && !wasAlreadyPassed) {
+        } else if (!passed && !isAlreadyPassed) {
             progress.setStatus(ProgressStatus.IN_PROGRESS);
         }
-        // wasAlreadyPassed: keep PASSED regardless — no further transition
+        // isAlreadyPassed: keep PASSED regardless — no further transition
 
         userProgressRepository.save(progress);
 
-        boolean firstPass = passed && !wasAlreadyPassed;
-        if (firstPass) {
+        boolean isFirstPass = passed && !isAlreadyPassed;
+        if (isFirstPass) {
             gamificationService.awardTaskCompletion(userId, taskId);
         }
         log.debug(
-                "Recorded attempt userId={} taskId={} passed={} attempts={} firstPass={}",
+                "Recorded attempt userId={} taskId={} passed={} attempts={} isFirstPass={}",
                 userId,
                 taskId,
                 passed,
                 progress.getAttempts(),
-                firstPass);
-        return firstPass;
+                isFirstPass);
+        return isFirstPass;
     }
 
     @Transactional(readOnly = true)

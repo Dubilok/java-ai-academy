@@ -2,8 +2,6 @@ package com.javaacademy.platform.progress;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.javaacademy.platform.auth.entity.User;
@@ -12,11 +10,11 @@ import com.javaacademy.platform.catalog.entity.Task;
 import com.javaacademy.platform.catalog.repository.TaskRepository;
 import com.javaacademy.platform.common.ApiException;
 import com.javaacademy.platform.progress.service.GamificationService;
+import com.javaacademy.platform.progress.util.XpCalculator;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,13 +43,10 @@ class GamificationServiceTest {
         Task task = taskWithXpReward(100L);
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(taskRepository.getReferenceById(TASK_ID)).thenReturn(task);
-        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.awardTaskCompletion(USER_ID, TASK_ID);
 
-        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(captor.capture());
-        assertThat(captor.getValue().getXpPoints()).isEqualTo(600L);
+        assertThat(user.getXpPoints()).isEqualTo(600L);
     }
 
     @Test
@@ -61,13 +56,10 @@ class GamificationServiceTest {
         Task task = taskWithXpReward(50L);
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
         when(taskRepository.getReferenceById(TASK_ID)).thenReturn(task);
-        when(userRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.awardTaskCompletion(USER_ID, TASK_ID);
 
-        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(captor.capture());
-        assertThat(captor.getValue().getCrystals()).isEqualTo(4L);
+        assertThat(user.getCrystals()).isEqualTo(4L);
     }
 
     @Test
@@ -80,42 +72,42 @@ class GamificationServiceTest {
                 .isEqualTo(HttpStatus.NOT_FOUND);
     }
 
-    // ── calculateLevel ────────────────────────────────────────────────────────
+    // ── XpCalculator.calculateLevel ───────────────────────────────────────────
 
     @Test
     void calculateLevel_atZeroXp_returnsOne() {
-        assertThat(GamificationService.calculateLevel(0L)).isEqualTo(1);
+        assertThat(XpCalculator.calculateLevel(0L)).isEqualTo(1);
     }
 
     @Test
     void calculateLevel_atNegativeXp_returnsOne() {
-        assertThat(GamificationService.calculateLevel(-500L)).isEqualTo(1);
+        assertThat(XpCalculator.calculateLevel(-500L)).isEqualTo(1);
     }
 
     @Test
     void calculateLevel_at100Xp_returnsTwo() {
-        assertThat(GamificationService.calculateLevel(100L)).isEqualTo(2);
+        assertThat(XpCalculator.calculateLevel(100L)).isEqualTo(2);
     }
 
     @Test
     void calculateLevel_at400Xp_returnsThree() {
-        assertThat(GamificationService.calculateLevel(400L)).isEqualTo(3);
+        assertThat(XpCalculator.calculateLevel(400L)).isEqualTo(3);
     }
 
     @Test
     void calculateLevel_at900Xp_returnsFour() {
-        assertThat(GamificationService.calculateLevel(900L)).isEqualTo(4);
+        assertThat(XpCalculator.calculateLevel(900L)).isEqualTo(4);
     }
 
     @Test
     void calculateLevel_justBelowNextThreshold_doesNotAdvance() {
-        // 399 XP: sqrt(3.99) = 1.997... → floor = 1 → level 2
-        assertThat(GamificationService.calculateLevel(399L)).isEqualTo(2);
+        // 399 XP: sqrt(3.99) ≈ 1.997 → floor = 1 → level 2
+        assertThat(XpCalculator.calculateLevel(399L)).isEqualTo(2);
     }
 
     @Test
     void calculateLevel_atVeryHighXp_capsAtFifty() {
-        assertThat(GamificationService.calculateLevel(500_000L)).isEqualTo(50);
+        assertThat(XpCalculator.calculateLevel(500_000L)).isEqualTo(50);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

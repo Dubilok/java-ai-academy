@@ -68,9 +68,9 @@ class ProgressServiceTest {
         when(taskRepository.getReferenceById(TASK_ID)).thenReturn(new Task());
         when(userProgressRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        boolean firstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, false);
+        boolean isFirstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, false);
 
-        assertThat(firstPass).isFalse();
+        assertThat(isFirstPass).isFalse();
         ArgumentCaptor<UserProgress> cap = ArgumentCaptor.forClass(UserProgress.class);
         verify(userProgressRepository).save(cap.capture());
         UserProgress saved = cap.getValue();
@@ -87,9 +87,9 @@ class ProgressServiceTest {
         when(taskRepository.getReferenceById(TASK_ID)).thenReturn(new Task());
         when(userProgressRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        boolean firstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, true);
+        boolean isFirstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, true);
 
-        assertThat(firstPass).isTrue();
+        assertThat(isFirstPass).isTrue();
         ArgumentCaptor<UserProgress> cap = ArgumentCaptor.forClass(UserProgress.class);
         verify(userProgressRepository).save(cap.capture());
         assertThat(cap.getValue().getStatus()).isEqualTo(ProgressStatus.PASSED);
@@ -104,9 +104,9 @@ class ProgressServiceTest {
         when(userProgressRepository.findByUserIdAndTaskId(USER_ID, TASK_ID)).thenReturn(Optional.of(existing));
         when(userProgressRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        boolean firstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, false);
+        boolean isFirstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, false);
 
-        assertThat(firstPass).isFalse();
+        assertThat(isFirstPass).isFalse();
         assertThat(existing.getStatus()).isEqualTo(ProgressStatus.IN_PROGRESS);
         assertThat(existing.getAttempts()).isEqualTo(4);
     }
@@ -117,9 +117,9 @@ class ProgressServiceTest {
         when(userProgressRepository.findByUserIdAndTaskId(USER_ID, TASK_ID)).thenReturn(Optional.of(existing));
         when(userProgressRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        boolean firstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, true);
+        boolean isFirstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, true);
 
-        assertThat(firstPass).isTrue();
+        assertThat(isFirstPass).isTrue();
         assertThat(existing.getStatus()).isEqualTo(ProgressStatus.PASSED);
         assertThat(existing.getAttempts()).isEqualTo(5);
     }
@@ -132,9 +132,9 @@ class ProgressServiceTest {
         when(userProgressRepository.findByUserIdAndTaskId(USER_ID, TASK_ID)).thenReturn(Optional.of(existing));
         when(userProgressRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        boolean firstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, false);
+        boolean isFirstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, false);
 
-        assertThat(firstPass).isFalse();
+        assertThat(isFirstPass).isFalse();
         assertThat(existing.getStatus()).isEqualTo(ProgressStatus.PASSED);
         assertThat(existing.getAttempts()).isEqualTo(2);
     }
@@ -145,9 +145,9 @@ class ProgressServiceTest {
         when(userProgressRepository.findByUserIdAndTaskId(USER_ID, TASK_ID)).thenReturn(Optional.of(existing));
         when(userProgressRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        boolean firstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, true);
+        boolean isFirstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, true);
 
-        assertThat(firstPass).isFalse();
+        assertThat(isFirstPass).isFalse();
         assertThat(existing.getStatus()).isEqualTo(ProgressStatus.PASSED);
         assertThat(existing.getAttempts()).isEqualTo(3);
     }
