@@ -34,8 +34,22 @@ Stop and run the `/dev-task-open-question` workflow instead. Guessing here costs
   a test pass.
 - Small, focused diffs. Don't refactor unrelated code, don't add speculative abstraction for future
   epics, don't upgrade dependencies that weren't part of the task.
-- Write the tests **as part of the task**, not afterwards. Cover the failure path: the timeout, the
-  403, the malformed payload, the exhausted retry — not just the happy case.
+- Write the tests **as part of the task**, not afterwards. Every task must have tests at **both** levels:
+
+  **Unit tests** (JUnit 5 + Mockito, no Spring context, no Docker):
+  - Pure service/domain logic in isolation — every branch, every edge case.
+  - Name: `methodName_condition_expectedOutcome`. Fast enough to run on every keystroke.
+  - Mock all collaborators; assert behaviour, not implementation details.
+
+  **Integration / slice tests** (Testcontainers or @WebMvcTest):
+  - `@WebMvcTest` for controllers — verifies HTTP contract, validation errors, security rules,
+    response shape. Uses `@MockBean` for services; no DB or Docker needed.
+  - `@DataJpaTest` + Testcontainers Postgres for repositories — verifies real SQL, indexes,
+    constraints, and ON DELETE behaviour. No H2 ever.
+  - `@SpringBootTest` + Testcontainers for end-to-end flows that span multiple layers
+    (e.g., submit → sandbox → verdict persisted).
+  - Cover the failure path in each: wrong credentials → 401, missing body → 400, duplicate
+    key → 409, sandbox timeout → FAILED verdict, exhausted retry → error response.
 
 ### 4. Verify — with real commands, not optimism
 Run the verification commands from §10 that apply. At minimum:
