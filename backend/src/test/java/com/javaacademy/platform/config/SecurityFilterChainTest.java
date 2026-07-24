@@ -11,6 +11,7 @@ import com.javaacademy.platform.auth.dto.AuthResponse;
 import com.javaacademy.platform.auth.service.AuthService;
 import com.javaacademy.platform.auth.service.JwtService;
 import com.javaacademy.platform.catalog.service.CatalogService;
+import com.javaacademy.platform.progress.service.MeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -36,6 +37,9 @@ class SecurityFilterChainTest {
 
     @MockBean
     CatalogService catalogService;
+
+    @MockBean
+    MeService meService;
 
     // ── public paths ───────────────────────────────────────────────────────────
 
@@ -91,8 +95,8 @@ class SecurityFilterChainTest {
 
     @Test
     @WithMockUser(roles = "STUDENT")
-    void studentEndpoint_withStudentRole_passesSecurityAndReturns404() throws Exception {
-        mockMvc.perform(get("/api/v1/me")).andExpect(status().isNotFound());
+    void studentEndpoint_withStudentRole_passesSecurityAndReturns200() throws Exception {
+        mockMvc.perform(get("/api/v1/me")).andExpect(isNotSecurityError());
     }
 
     // ── JWT filter integration ─────────────────────────────────────────────────
@@ -103,9 +107,9 @@ class SecurityFilterChainTest {
         given(jwtService.extractEmail(anyString())).willReturn("user@example.com");
         given(jwtService.extractRole(anyString())).willReturn("ROLE_STUDENT");
 
-        // Security context populated by JWT filter → passes security → 404 (no handler)
+        // Security context populated by JWT filter → passes security → MeController handles it
         mockMvc.perform(get("/api/v1/me").header("Authorization", "Bearer student.jwt.token"))
-                .andExpect(status().isNotFound());
+                .andExpect(isNotSecurityError());
     }
 
     @Test
