@@ -145,18 +145,12 @@ class DockerCodeExecutionServiceTest {
         assertThat(result.durationMs()).isZero();
     }
 
-    // ── execute — happy path ──────────────────────────────────────────────────
+    // ── execute — verdict from XML (no XML = always FAILED) ──────────────────
 
     @Test
-    void execute_exitCodeZero_returnsPassed() {
-        when(containerState.getExitCodeLong()).thenReturn(0L);
-        ExecutionResult result = service.execute(request("class Solution{}", "class TaskTest{}"));
-        assertThat(result.status()).isEqualTo(ExecutionStatus.PASSED);
-    }
-
-    @Test
-    void execute_exitCodeNonZero_returnsFailed() {
-        when(containerState.getExitCodeLong()).thenReturn(1L);
+    void execute_noXmlReport_returnsFailed() {
+        // No JUnit XML is written by the mocked Docker run, so verdict is always FAILED
+        // (covers compilation failure AND System.exit() which also produce no XML)
         ExecutionResult result = service.execute(request("class Solution{}", "class TaskTest{}"));
         assertThat(result.status()).isEqualTo(ExecutionStatus.FAILED);
     }

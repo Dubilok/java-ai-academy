@@ -86,11 +86,9 @@ public final class DockerCodeExecutionService implements CodeExecutionEngine {
                         ? ExecutionResult.passed(logs, durationMs)
                         : ExecutionResult.failed(failedTests, logs, durationMs);
             }
-            // XML absent means compilation failed — fall back to exit code
-            int exitCode = inspectExitCode(containerId);
-            return exitCode == 0
-                    ? ExecutionResult.passed(logs, durationMs)
-                    : ExecutionResult.failed(0, logs, durationMs);
+            // XML absent: compilation failed or JVM terminated prematurely (e.g. System.exit).
+            // In either case tests did not complete — always FAILED.
+            return ExecutionResult.failed(0, logs, durationMs);
 
         } catch (Exception exception) {
             log.error("Sandbox execution error for task {}", request.taskId(), exception);
@@ -188,15 +186,6 @@ public final class DockerCodeExecutionService implements CodeExecutionEngine {
         String output() {
             return buffer.toString(StandardCharsets.UTF_8);
         }
-    }
-
-    private int inspectExitCode(String containerId) {
-        var state = dockerClient.inspectContainerCmd(containerId).exec().getState();
-        if (state == null) {
-            return 1;
-        }
-        Long exitCode = state.getExitCodeLong();
-        return exitCode != null ? exitCode.intValue() : 1;
     }
 
     private void killQuietly(String containerId) {
