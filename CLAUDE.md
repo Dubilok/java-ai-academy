@@ -470,7 +470,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 
 ### E2 — Catalog & progress
 - [x] E2-T1 Course/module/lecture/task read endpoints with cursor pagination
-- [ ] E2-T2 Task DTO mapping that **provably** omits `testCode` (test asserts absence in JSON)
+- [x] E2-T2 Task DTO mapping that **provably** omits `testCode` (test asserts absence in JSON)
 - [ ] E2-T3 `user_progress` upsert + attempt counting
 - [ ] E2-T4 XP/level/crystal rules in one `GamificationService`; idempotent award test
 - [ ] E2-T5 `/me` and `/me/progress` aggregates
@@ -647,6 +647,7 @@ cd ide-plugin
 | 2026-07-24 | E1-T2 | ✅ | Docker now running; `FlywayMigrationTest` + `JpaMappingTest` pass with Testcontainers; fixed `RefreshTokenRepositoryTest` (missing `@AutoConfigureTestDatabase(replace=NONE)`); fixed `FlywayMigrationTest` to expect both V1 + V2 migrations |
 | 2026-07-24 | E1-T3 | ✅ | All 12 JPA entity mappings confirmed by `JpaMappingTest` running against real Postgres via Testcontainers |
 | 2026-07-24 | E2-T1 | ✅ | `GET /courses` (public, cursor-paginated), `GET /courses/{id}`, `GET /lectures/{id}`, `GET /tasks/{id}`; `CatalogService` + `CatalogController`; 8 DTOs; cursor = Base64URL(epochMilli~uuid); TaskResponse provably omits testCode/solutionCode; 14 unit tests (CatalogServiceTest) + 14 slice tests (CatalogControllerTest); all 126 tests pass |
+| 2026-07-24 | E2-T2 | ✅ | `TaskDtoMappingTest`: 5 tests covering (1) reflection — record components contain exactly `{id,title,description,difficulty,templateCode,xpReward}`, (2) mapping path — entity with `testCode/solutionCode` populated → `TaskResponse` contains neither, (3) Jackson serialisation — JSON output has no `testCode`/`solutionCode` keys and no secret values; all 130 tests pass |
 
 ---
 
