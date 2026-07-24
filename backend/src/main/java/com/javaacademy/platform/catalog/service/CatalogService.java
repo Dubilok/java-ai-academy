@@ -9,17 +9,15 @@ import com.javaacademy.platform.catalog.dto.PagedResponse;
 import com.javaacademy.platform.catalog.dto.TaskResponse;
 import com.javaacademy.platform.catalog.dto.TaskStubResponse;
 import com.javaacademy.platform.catalog.entity.Course;
-import com.javaacademy.platform.catalog.entity.CourseModule;
 import com.javaacademy.platform.catalog.entity.Lecture;
 import com.javaacademy.platform.catalog.entity.Task;
+import com.javaacademy.platform.catalog.mapper.CatalogMapper;
 import com.javaacademy.platform.catalog.repository.CourseModuleRepository;
 import com.javaacademy.platform.catalog.repository.CourseRepository;
 import com.javaacademy.platform.catalog.repository.LectureRepository;
 import com.javaacademy.platform.catalog.repository.TaskRepository;
+import com.javaacademy.platform.catalog.util.CursorEncoder;
 import com.javaacademy.platform.common.ApiException;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +47,7 @@ public class CatalogService {
         if (cursorStr == null) {
             courses = courseRepository.findAllPublished(PageRequest.of(0, fetchSize));
         } else {
-            CursorParts cursor = decodeCursor(cursorStr);
+            CursorEncoder.CursorParts cursor = CursorEncoder.decode(cursorStr);
             courses = courseRepository.findPublishedAfterCursor(
                     cursor.createdAt(), cursor.id(), PageRequest.of(0, fetchSize));
         }
@@ -60,10 +58,11 @@ public class CatalogService {
         String nextCursor = null;
         if (hasNext) {
             Course last = page.get(page.size() - 1);
-            nextCursor = encodeCursor(last.getCreatedAt(), last.getId());
+            nextCursor = CursorEncoder.encode(last.getCreatedAt(), last.getId());
         }
 
-        return new PagedResponse<>(page.stream().map(this::toCourseResponse).toList(), nextCursor);
+        return new PagedResponse<>(
+                page.stream().map(CatalogMapper::toCourseResponse).toList(), nextCursor);
     }
 
     public CourseDetailResponse getCourse(UUID id) {
@@ -72,16 +71,16 @@ public class CatalogService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Course not found: " + id));
 
         List<ModuleResponse> modules = moduleRepository.findByCourseOrderByOrderIndexAsc(course).stream()
-                .map(this::toModuleResponse)
+                .map(module -> {
+                    List<LectureStubResponse> lectureStubs =
+                            lectureRepository.findByModuleOrderByOrderIndexAsc(module).stream()
+                                    .map(CatalogMapper::toLectureStubResponse)
+                                    .toList();
+                    return CatalogMapper.toModuleResponse(module, lectureStubs);
+                })
                 .toList();
 
-        return new CourseDetailResponse(
-                course.getId(),
-                course.getTitle(),
-                course.getDescription(),
-                course.getTechnology(),
-                course.getCreatedAt(),
-                modules);
+        return CatalogMapper.toCourseDetailResponse(course, modules);
     }
 
     public LectureResponse getLecture(UUID id) {
@@ -89,12 +88,11 @@ public class CatalogService {
                 .findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Lecture not found: " + id));
 
-        List<TaskStubResponse> tasks = taskRepository.findByLectureOrderByIdAsc(lecture).stream()
-                .map(t -> new TaskStubResponse(t.getId(), t.getTitle(), t.getDifficulty(), t.getXpReward()))
+        List<TaskStubResponse> taskStubs = taskRepository.findByLectureOrderByIdAsc(lecture).stream()
+                .map(CatalogMapper::toTaskStubResponse)
                 .toList();
 
-        return new LectureResponse(
-                lecture.getId(), lecture.getTitle(), lecture.getContentMarkdown(), lecture.getOrderIndex(), tasks);
+        return CatalogMapper.toLectureResponse(lecture, taskStubs);
     }
 
     public TaskResponse getTask(UUID id) {
@@ -102,45 +100,6 @@ public class CatalogService {
                 .findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Task not found: " + id));
 
-        return new TaskResponse(
-                task.getId(),
-                task.getTitle(),
-                task.getDescription(),
-                task.getDifficulty(),
-                task.getTemplateCode(),
-                task.getXpReward());
-    }
-
-    // ── cursor helpers ────────────────────────────────────────────────────────
-
-    private record CursorParts(Instant createdAt, UUID id) {}
-
-    public static String encodeCursor(Instant createdAt, UUID id) {
-        String raw = createdAt.toEpochMilli() + "~" + id;
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private static CursorParts decodeCursor(String cursor) {
-        try {
-            byte[] decoded = Base64.getUrlDecoder().decode(cursor);
-            String raw = new String(decoded, StandardCharsets.UTF_8);
-            String[] parts = raw.split("~", 2);
-            return new CursorParts(Instant.ofEpochMilli(Long.parseLong(parts[0])), UUID.fromString(parts[1]));
-        } catch (RuntimeException e) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid cursor");
-        }
-    }
-
-    // ── mappers ───────────────────────────────────────────────────────────────
-
-    private CourseResponse toCourseResponse(Course c) {
-        return new CourseResponse(c.getId(), c.getTitle(), c.getDescription(), c.getTechnology(), c.getCreatedAt());
-    }
-
-    private ModuleResponse toModuleResponse(CourseModule m) {
-        List<LectureStubResponse> lectures = lectureRepository.findByModuleOrderByOrderIndexAsc(m).stream()
-                .map(l -> new LectureStubResponse(l.getId(), l.getTitle(), l.getOrderIndex()))
-                .toList();
-        return new ModuleResponse(m.getId(), m.getTitle(), m.getOrderIndex(), lectures);
+        return CatalogMapper.toTaskResponse(task);
     }
 }

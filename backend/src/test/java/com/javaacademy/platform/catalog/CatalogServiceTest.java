@@ -16,6 +16,7 @@ import com.javaacademy.platform.catalog.repository.CourseRepository;
 import com.javaacademy.platform.catalog.repository.LectureRepository;
 import com.javaacademy.platform.catalog.repository.TaskRepository;
 import com.javaacademy.platform.catalog.service.CatalogService;
+import com.javaacademy.platform.catalog.util.CursorEncoder;
 import com.javaacademy.platform.common.ApiException;
 import java.time.Instant;
 import java.util.List;
@@ -50,11 +51,11 @@ class CatalogServiceTest {
     // ── cursor encoding / decoding ────────────────────────────────────────────
 
     @Test
-    void encodeCursor_producesValidBase64Url() {
+    void cursorEncoder_encode_producesValidBase64Url() {
         Instant ts = Instant.parse("2026-07-24T10:00:00Z");
         UUID id = UUID.randomUUID();
 
-        String encoded = CatalogService.encodeCursor(ts, id);
+        String encoded = CursorEncoder.encode(ts, id);
 
         assertThat(encoded).isNotBlank();
         assertThat(encoded).doesNotContain("+", "/", "=");
@@ -115,7 +116,7 @@ class CatalogServiceTest {
     void listPublishedCourses_withCursor_queriesAfterCursor() {
         Instant ts = Instant.parse("2026-01-15T00:00:00Z");
         UUID id = UUID.randomUUID();
-        String cursor = CatalogService.encodeCursor(ts, id);
+        String cursor = CursorEncoder.encode(ts, id);
 
         when(courseRepository.findPublishedAfterCursor(ts, id, PageRequest.of(0, 3)))
                 .thenReturn(List.of());

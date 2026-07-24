@@ -206,6 +206,8 @@ java-ai-academy/
 │       │   │   ├── entity/          ← Course, CourseModule, Lecture, Task
 │       │   │   ├── repository/      ← CourseRepository, …
 │       │   │   ├── dto/             ← CourseResponse, TaskResponse, PagedResponse, …
+│       │   │   ├── mapper/          ← CatalogMapper (@UtilityClass, pure static transformations)
+│       │   │   ├── util/            ← CursorEncoder (@UtilityClass, encode/decode)
 │       │   │   └── enums/           ← Difficulty (EASY/MEDIUM/HARD) — when added
 │       │   ├── progress/
 │       │   │   ├── service/         ← ProgressService
@@ -244,6 +246,8 @@ Sub-package conventions within a feature:
 - `controller/` — `@RestController` classes; thin, no business logic
 - `dto/` — Java records for request/response mapping; never contain `@Entity` references
 - `enums/` — enums for any fixed value set used by that feature (status fields, difficulty levels, outcome types); see §5.1 enum rules
+- `mapper/` — `@UtilityClass` classes with **pure static** mapping methods; no Spring beans, no repository calls; all required data is passed in as parameters
+- `util/` — `@UtilityClass` helpers for encoding, formatting, or other stateless transformations that belong to the feature but are not mappers
 - Feature-root level: `@ConfigurationProperties` records (e.g. `auth/JwtProperties.java`), feature-specific exceptions
 
 ---
