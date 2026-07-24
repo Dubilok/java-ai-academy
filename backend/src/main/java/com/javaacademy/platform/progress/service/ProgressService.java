@@ -3,6 +3,7 @@ package com.javaacademy.platform.progress.service;
 import com.javaacademy.platform.auth.repository.UserRepository;
 import com.javaacademy.platform.catalog.repository.TaskRepository;
 import com.javaacademy.platform.progress.entity.UserProgress;
+import com.javaacademy.platform.progress.enums.ProgressStatus;
 import com.javaacademy.platform.progress.repository.UserProgressRepository;
 import java.time.Clock;
 import java.time.Instant;
@@ -19,9 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class ProgressService {
 
-    public static final String STATUS_IN_PROGRESS = "IN_PROGRESS";
-    public static final String STATUS_PASSED = "PASSED";
-
     private final UserProgressRepository userProgressRepository;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
@@ -31,6 +29,7 @@ public class ProgressService {
      * Upserts user_progress after a submission verdict and increments the attempt counter.
      *
      * <p>Status transitions:
+     *
      * <ul>
      *   <li>No row: create IN_PROGRESS; if passed, create PASSED immediately.
      *   <li>IN_PROGRESS + failed: stay IN_PROGRESS.
@@ -46,16 +45,16 @@ public class ProgressService {
                 .findByUserIdAndTaskId(userId, taskId)
                 .orElseGet(() -> newProgress(userId, taskId));
 
-        boolean wasAlreadyPassed = STATUS_PASSED.equals(progress.getStatus());
+        boolean wasAlreadyPassed = progress.getStatus() == ProgressStatus.PASSED;
 
         progress.setAttempts(progress.getAttempts() + 1);
         progress.setSubmittedCode(submittedCode);
         progress.setUpdatedAt(clock.instant());
 
         if (passed && !wasAlreadyPassed) {
-            progress.setStatus(STATUS_PASSED);
+            progress.setStatus(ProgressStatus.PASSED);
         } else if (!passed && !wasAlreadyPassed) {
-            progress.setStatus(STATUS_IN_PROGRESS);
+            progress.setStatus(ProgressStatus.IN_PROGRESS);
         }
         // wasAlreadyPassed: keep PASSED regardless — no further transition
 
@@ -82,7 +81,7 @@ public class ProgressService {
         // getReferenceById returns a JPA proxy: sets the FK column without a SELECT
         p.setUser(userRepository.getReferenceById(userId));
         p.setTask(taskRepository.getReferenceById(taskId));
-        p.setStatus(STATUS_IN_PROGRESS);
+        p.setStatus(ProgressStatus.IN_PROGRESS);
         p.setAttempts(0);
         p.setUpdatedAt(Instant.EPOCH); // overwritten immediately by caller
         return p;

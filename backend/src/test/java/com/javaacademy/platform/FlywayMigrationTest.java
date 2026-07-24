@@ -79,7 +79,7 @@ class FlywayMigrationTest {
     @Test
     void allMigrations_areAppliedWithNoChecksumMismatch() {
         MigrationInfo[] applied = flyway.info().applied();
-        assertThat(applied).hasSize(2);
+        assertThat(applied).hasSize(3);
         assertThat(applied[0].getVersion().getVersion()).isEqualTo("1");
         assertThat(applied[0].getDescription()).isEqualTo("initial schema");
         assertThat(applied[0].getState().isApplied()).isTrue();
@@ -88,6 +88,10 @@ class FlywayMigrationTest {
         assertThat(applied[1].getDescription()).isEqualTo("refresh tokens");
         assertThat(applied[1].getState().isApplied()).isTrue();
         assertThat(applied[1].getState().isFailed()).isFalse();
+        assertThat(applied[2].getVersion().getVersion()).isEqualTo("3");
+        assertThat(applied[2].getDescription()).isEqualTo("status enum constraints");
+        assertThat(applied[2].getState().isApplied()).isTrue();
+        assertThat(applied[2].getState().isFailed()).isFalse();
     }
 
     @Test

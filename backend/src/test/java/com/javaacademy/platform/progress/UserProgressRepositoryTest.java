@@ -14,6 +14,7 @@ import com.javaacademy.platform.catalog.repository.CourseRepository;
 import com.javaacademy.platform.catalog.repository.LectureRepository;
 import com.javaacademy.platform.catalog.repository.TaskRepository;
 import com.javaacademy.platform.progress.entity.UserProgress;
+import com.javaacademy.platform.progress.enums.ProgressStatus;
 import com.javaacademy.platform.progress.repository.UserProgressRepository;
 import java.time.Instant;
 import java.util.Optional;
@@ -69,13 +70,13 @@ class UserProgressRepositoryTest {
 
     @Test
     void findByUserIdAndTaskId_whenProgressExists_returnsIt() {
-        UserProgress saved = savedProgress(user, task, "IN_PROGRESS", 1);
+        UserProgress saved = savedProgress(user, task, ProgressStatus.IN_PROGRESS, 1);
 
         Optional<UserProgress> found = userProgressRepository.findByUserIdAndTaskId(user.getId(), task.getId());
 
         assertThat(found).isPresent();
         assertThat(found.get().getId()).isEqualTo(saved.getId());
-        assertThat(found.get().getStatus()).isEqualTo("IN_PROGRESS");
+        assertThat(found.get().getStatus()).isEqualTo(ProgressStatus.IN_PROGRESS);
         assertThat(found.get().getAttempts()).isEqualTo(1);
     }
 
@@ -90,7 +91,7 @@ class UserProgressRepositoryTest {
     @Test
     void findByUserIdAndTaskId_whenDifferentUser_returnsEmpty() {
         User other = savedUser("other@example.com");
-        savedProgress(other, task, "PASSED", 2);
+        savedProgress(other, task, ProgressStatus.PASSED, 2);
 
         Optional<UserProgress> found = userProgressRepository.findByUserIdAndTaskId(user.getId(), task.getId());
 
@@ -100,7 +101,7 @@ class UserProgressRepositoryTest {
     @Test
     void findByUserIdAndTaskId_whenDifferentTask_returnsEmpty() {
         Task otherTask = savedTask();
-        savedProgress(user, otherTask, "IN_PROGRESS", 1);
+        savedProgress(user, otherTask, ProgressStatus.IN_PROGRESS, 1);
 
         Optional<UserProgress> found = userProgressRepository.findByUserIdAndTaskId(user.getId(), task.getId());
 
@@ -111,9 +112,9 @@ class UserProgressRepositoryTest {
 
     @Test
     void save_duplicateUserAndTask_throwsDataIntegrityViolation() {
-        savedProgress(user, task, "IN_PROGRESS", 1);
+        savedProgress(user, task, ProgressStatus.IN_PROGRESS, 1);
 
-        UserProgress duplicate = progressFor(user, task, "PASSED", 1);
+        UserProgress duplicate = progressFor(user, task, ProgressStatus.PASSED, 1);
         assertThatThrownBy(() -> userProgressRepository.saveAndFlush(duplicate))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
@@ -122,7 +123,7 @@ class UserProgressRepositoryTest {
 
     @Test
     void deleteUser_cascadesToUserProgress() {
-        savedProgress(user, task, "IN_PROGRESS", 3);
+        savedProgress(user, task, ProgressStatus.IN_PROGRESS, 3);
 
         userRepository.delete(user);
         userRepository.flush();
@@ -136,7 +137,7 @@ class UserProgressRepositoryTest {
     @Test
     void save_allFields_persistedAndRetrievedCorrectly() {
         Instant now = Instant.parse("2026-07-24T12:00:00Z");
-        UserProgress p = progressFor(user, task, "PASSED", 5);
+        UserProgress p = progressFor(user, task, ProgressStatus.PASSED, 5);
         p.setSubmittedCode("System.out.println(\"hi\");");
         p.setUpdatedAt(now);
         userProgressRepository.saveAndFlush(p);
@@ -144,7 +145,7 @@ class UserProgressRepositoryTest {
         Optional<UserProgress> found = userProgressRepository.findByUserIdAndTaskId(user.getId(), task.getId());
 
         assertThat(found).isPresent();
-        assertThat(found.get().getStatus()).isEqualTo("PASSED");
+        assertThat(found.get().getStatus()).isEqualTo(ProgressStatus.PASSED);
         assertThat(found.get().getAttempts()).isEqualTo(5);
         assertThat(found.get().getSubmittedCode()).isEqualTo("System.out.println(\"hi\");");
         assertThat(found.get().getUpdatedAt()).isEqualTo(now);
@@ -152,7 +153,7 @@ class UserProgressRepositoryTest {
 
     @Test
     void save_nullSubmittedCode_allowed() {
-        UserProgress p = progressFor(user, task, "IN_PROGRESS", 1);
+        UserProgress p = progressFor(user, task, ProgressStatus.IN_PROGRESS, 1);
         p.setSubmittedCode(null);
         userProgressRepository.saveAndFlush(p);
 
@@ -164,12 +165,12 @@ class UserProgressRepositoryTest {
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
-    private UserProgress savedProgress(User u, Task t, String status, int attempts) {
+    private UserProgress savedProgress(User u, Task t, ProgressStatus status, int attempts) {
         UserProgress p = progressFor(u, t, status, attempts);
         return userProgressRepository.saveAndFlush(p);
     }
 
-    private UserProgress progressFor(User u, Task t, String status, int attempts) {
+    private UserProgress progressFor(User u, Task t, ProgressStatus status, int attempts) {
         UserProgress p = new UserProgress();
         p.setUser(u);
         p.setTask(t);

@@ -24,6 +24,8 @@ import com.javaacademy.platform.interview.repository.InterviewQuestionRepository
 import com.javaacademy.platform.interview.repository.InterviewSessionRepository;
 import com.javaacademy.platform.progress.entity.Submission;
 import com.javaacademy.platform.progress.entity.UserProgress;
+import com.javaacademy.platform.progress.enums.ProgressStatus;
+import com.javaacademy.platform.progress.enums.SubmissionStatus;
 import com.javaacademy.platform.progress.repository.SubmissionRepository;
 import com.javaacademy.platform.progress.repository.UserProgressRepository;
 import java.time.Instant;
@@ -129,7 +131,7 @@ class JpaMappingTest {
         UserProgress progress = new UserProgress();
         progress.setUser(user);
         progress.setTask(task);
-        progress.setStatus("NOT_STARTED");
+        progress.setStatus(ProgressStatus.IN_PROGRESS);
         progress.setAttempts(0);
         progress.setUpdatedAt(Instant.now());
         UserProgress saved = userProgressRepository.save(progress);
@@ -145,7 +147,7 @@ class JpaMappingTest {
         submission.setUser(user);
         submission.setTask(task);
         submission.setSource("public class Solution {}");
-        submission.setStatus("PENDING");
+        submission.setStatus(SubmissionStatus.PENDING);
         submission.setCreatedAt(Instant.now());
         Submission saved = submissionRepository.save(submission);
         assertThat(saved.getId()).isNotNull();
@@ -159,7 +161,7 @@ class JpaMappingTest {
         submission.setUser(user);
         submission.setTask(null);
         submission.setSource("public class Solution {}");
-        submission.setStatus("PASSED");
+        submission.setStatus(SubmissionStatus.PASSED);
         submission.setCreatedAt(Instant.now());
         Submission saved = submissionRepository.save(submission);
         assertThat(saved.getId()).isNotNull();

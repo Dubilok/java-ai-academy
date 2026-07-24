@@ -2,8 +2,11 @@ package com.javaacademy.platform.progress.entity;
 
 import com.javaacademy.platform.auth.entity.User;
 import com.javaacademy.platform.catalog.entity.Task;
+import com.javaacademy.platform.progress.enums.ProgressStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -37,8 +40,9 @@ public class UserProgress {
     @JoinColumn(name = "task_id", nullable = false)
     private Task task;
 
-    @Column(nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private ProgressStatus status;
 
     @Column(nullable = false)
     private int attempts;

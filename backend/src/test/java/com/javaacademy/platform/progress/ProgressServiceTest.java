@@ -11,6 +11,7 @@ import com.javaacademy.platform.auth.repository.UserRepository;
 import com.javaacademy.platform.catalog.entity.Task;
 import com.javaacademy.platform.catalog.repository.TaskRepository;
 import com.javaacademy.platform.progress.entity.UserProgress;
+import com.javaacademy.platform.progress.enums.ProgressStatus;
 import com.javaacademy.platform.progress.repository.UserProgressRepository;
 import com.javaacademy.platform.progress.service.ProgressService;
 import java.time.Clock;
@@ -68,7 +69,7 @@ class ProgressServiceTest {
         ArgumentCaptor<UserProgress> cap = ArgumentCaptor.forClass(UserProgress.class);
         verify(userProgressRepository).save(cap.capture());
         UserProgress saved = cap.getValue();
-        assertThat(saved.getStatus()).isEqualTo(ProgressService.STATUS_IN_PROGRESS);
+        assertThat(saved.getStatus()).isEqualTo(ProgressStatus.IN_PROGRESS);
         assertThat(saved.getAttempts()).isEqualTo(1);
         assertThat(saved.getSubmittedCode()).isEqualTo(CODE);
         assertThat(saved.getUpdatedAt()).isEqualTo(NOW);
@@ -86,7 +87,7 @@ class ProgressServiceTest {
         assertThat(firstPass).isTrue();
         ArgumentCaptor<UserProgress> cap = ArgumentCaptor.forClass(UserProgress.class);
         verify(userProgressRepository).save(cap.capture());
-        assertThat(cap.getValue().getStatus()).isEqualTo(ProgressService.STATUS_PASSED);
+        assertThat(cap.getValue().getStatus()).isEqualTo(ProgressStatus.PASSED);
         assertThat(cap.getValue().getAttempts()).isEqualTo(1);
     }
 
@@ -101,7 +102,7 @@ class ProgressServiceTest {
         boolean firstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, false);
 
         assertThat(firstPass).isFalse();
-        assertThat(existing.getStatus()).isEqualTo(ProgressService.STATUS_IN_PROGRESS);
+        assertThat(existing.getStatus()).isEqualTo(ProgressStatus.IN_PROGRESS);
         assertThat(existing.getAttempts()).isEqualTo(4);
     }
 
@@ -114,7 +115,7 @@ class ProgressServiceTest {
         boolean firstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, true);
 
         assertThat(firstPass).isTrue();
-        assertThat(existing.getStatus()).isEqualTo(ProgressService.STATUS_PASSED);
+        assertThat(existing.getStatus()).isEqualTo(ProgressStatus.PASSED);
         assertThat(existing.getAttempts()).isEqualTo(5);
     }
 
@@ -129,7 +130,7 @@ class ProgressServiceTest {
         boolean firstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, false);
 
         assertThat(firstPass).isFalse();
-        assertThat(existing.getStatus()).isEqualTo(ProgressService.STATUS_PASSED);
+        assertThat(existing.getStatus()).isEqualTo(ProgressStatus.PASSED);
         assertThat(existing.getAttempts()).isEqualTo(2);
     }
 
@@ -142,7 +143,7 @@ class ProgressServiceTest {
         boolean firstPass = service.recordAttempt(USER_ID, TASK_ID, CODE, true);
 
         assertThat(firstPass).isFalse();
-        assertThat(existing.getStatus()).isEqualTo(ProgressService.STATUS_PASSED);
+        assertThat(existing.getStatus()).isEqualTo(ProgressStatus.PASSED);
         assertThat(existing.getAttempts()).isEqualTo(3);
     }
 
@@ -190,7 +191,7 @@ class ProgressServiceTest {
 
     private UserProgress inProgressAt(int attempts) {
         UserProgress p = new UserProgress();
-        p.setStatus(ProgressService.STATUS_IN_PROGRESS);
+        p.setStatus(ProgressStatus.IN_PROGRESS);
         p.setAttempts(attempts);
         p.setUpdatedAt(Instant.EPOCH);
         return p;
@@ -198,7 +199,7 @@ class ProgressServiceTest {
 
     private UserProgress passedAt(int attempts) {
         UserProgress p = new UserProgress();
-        p.setStatus(ProgressService.STATUS_PASSED);
+        p.setStatus(ProgressStatus.PASSED);
         p.setAttempts(attempts);
         p.setUpdatedAt(Instant.EPOCH);
         return p;
