@@ -19,6 +19,10 @@
             secondary="false"
             icon="/icons/toolwindow.svg"
             factoryClass="com.javaacademy.plugin.toolwindow.AcademyToolWindowFactory"/>
+        <notificationGroup
+            id="Java AI Academy"
+            displayType="BALLOON"
+            isLogByDefault="true"/>
     </extensions>
 
     <actions>

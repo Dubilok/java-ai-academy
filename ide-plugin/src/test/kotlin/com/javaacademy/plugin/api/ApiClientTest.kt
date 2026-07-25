@@ -125,6 +125,56 @@ class ApiClientTest {
         assertEquals(null, task.templateCode)
     }
 
+    @Test
+    fun `submitSolution_validSource_returnsSubmissionId`() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(202)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"submissionId":"sub-999"}""")
+        )
+        setFakeToken(buildFakeJwt())
+
+        val submissionId = client.submitSolution("task-123", "public class Solution {}")
+
+        assertEquals("sub-999", submissionId)
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/v1/tasks/task-123/submissions", request.path)
+    }
+
+    @Test
+    fun `pollSubmission_passed_returnsPassedStatus`() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"status":"PASSED","logs":null}""")
+        )
+        setFakeToken(buildFakeJwt())
+
+        val status = client.pollSubmission("sub-999")
+
+        assertEquals("PASSED", status.status)
+        assertEquals(null, status.logs)
+    }
+
+    @Test
+    fun `pollSubmission_failed_returnsFailedWithLogs`() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"status":"FAILED","logs":"Test failed: expected 1 but was 0"}""")
+        )
+        setFakeToken(buildFakeJwt())
+
+        val status = client.pollSubmission("sub-999")
+
+        assertEquals("FAILED", status.status)
+        assertEquals("Test failed: expected 1 but was 0", status.logs)
+    }
+
     private fun buildFakeJwt(): String {
         val header = java.util.Base64.getUrlEncoder().withoutPadding()
             .encodeToString("""{"alg":"HS256"}""".toByteArray())

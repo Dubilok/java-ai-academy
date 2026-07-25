@@ -9,6 +9,7 @@ import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.JBUI
 import com.javaacademy.plugin.actions.StartTaskAction
+import com.javaacademy.plugin.actions.VerifyTaskAction
 import com.javaacademy.plugin.api.ApiClient
 import com.javaacademy.plugin.api.CourseStub
 import com.javaacademy.plugin.api.TaskStub
@@ -37,6 +38,7 @@ class CourseTreePanel(private val project: Project, private val apiClient: ApiCl
     private val tree = Tree(treeModel)
     private val statusLabel = JBLabel("Loading courses…", SwingConstants.CENTER)
     private val startTaskButton = JButton("Start Task").apply { isEnabled = false }
+    private val verifyButton = JButton("Verify").apply { isEnabled = false }
 
     init {
         border = JBUI.Borders.empty(4)
@@ -49,6 +51,7 @@ class CourseTreePanel(private val project: Project, private val apiClient: ApiCl
                 ?.lastPathComponent as? DefaultMutableTreeNode
             val taskNode = selectedNode?.userObject as? TaskNode
             startTaskButton.isEnabled = taskNode != null
+            verifyButton.isEnabled = taskNode != null
             startTaskButton.text = if (taskNode != null) "Start: ${taskNode.task.title}" else "Start Task"
         }
 
@@ -69,10 +72,28 @@ class CourseTreePanel(private val project: Project, private val apiClient: ApiCl
             action.actionPerformed(fakeEvent)
         }
 
+        verifyButton.addActionListener {
+            val selectedNode = tree.selectionPath?.lastPathComponent as? DefaultMutableTreeNode
+            val taskNode = selectedNode?.userObject as? TaskNode ?: return@addActionListener
+            val action = VerifyTaskAction(taskNode.task.id, taskNode.task.title, apiClient)
+            val fakeEvent = com.intellij.openapi.actionSystem.AnActionEvent.createFromDataContext(
+                "AcademyToolWindow",
+                null,
+                com.intellij.openapi.actionSystem.DataContext { dataId ->
+                    when (dataId) {
+                        com.intellij.openapi.actionSystem.CommonDataKeys.PROJECT.name -> project
+                        else -> null
+                    }
+                }
+            )
+            action.actionPerformed(fakeEvent)
+        }
+
         val topBar = JPanel(BorderLayout())
         val rightButtons = JPanel(FlowLayout(FlowLayout.RIGHT, 4, 0))
         val refreshButton = JButton("Refresh")
         refreshButton.addActionListener { loadCourses() }
+        rightButtons.add(verifyButton)
         rightButtons.add(startTaskButton)
         rightButtons.add(refreshButton)
         topBar.add(rightButtons, BorderLayout.EAST)
