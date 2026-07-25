@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
+import { VerdictPanel } from "@/components/verdict-panel";
 import { fetchTask, pollSubmission, submitCode } from "@/lib/queries/tasks";
 
 const MonacoEditor = dynamic(
@@ -88,8 +89,6 @@ export default function TaskWorkspacePage({ params }: { params: { taskId: string
     setIsEditorReady(true);
   }
 
-  const terminalHeightClass = terminalOpen ? "h-48" : "h-10";
-
   return (
     <div className="flex h-[calc(100vh-52px)] flex-col">
       <div className="flex flex-1 overflow-hidden">
@@ -127,47 +126,14 @@ export default function TaskWorkspacePage({ params }: { params: { taskId: string
         </section>
       </div>
 
-      <div className={`flex flex-col border-t border-white/10 bg-bg-base transition-all ${terminalHeightClass}`}>
-        <button
-          onClick={() => setTerminalOpen((open) => !open)}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-text-muted hover:text-text-primary"
-          aria-expanded={terminalOpen}
-          aria-controls="terminal-output"
-        >
-          <span>{terminalOpen ? "▾" : "▸"}</span>
-          <span>Terminal</span>
-          {result && (
-            <span
-              className={`ml-2 rounded-full px-2 py-0.5 font-semibold ${
-                result.status === "PASSED"
-                  ? "bg-success/20 text-success"
-                  : "bg-error/20 text-error"
-              }`}
-            >
-              {result.status}
-            </span>
-          )}
-        </button>
-
-        {terminalOpen && (
-          <div
-            id="terminal-output"
-            role="log"
-            aria-live="polite"
-            aria-label="Test output"
-            className="flex-1 overflow-y-auto px-4 pb-4 font-mono text-xs"
-          >
-            {isSubmitting && (
-              <p className="text-text-muted">Running tests…</p>
-            )}
-            {result && (
-              <pre className={result.status === "PASSED" ? "text-success" : "text-error"}>
-                {result.logs ?? `${result.status} in ${result.durationMs ?? "?"}ms`}
-              </pre>
-            )}
-          </div>
-        )}
-      </div>
+      <VerdictPanel
+        status={result?.status ?? "PENDING"}
+        logs={result?.logs ?? null}
+        durationMs={result?.durationMs ?? null}
+        isOpen={terminalOpen}
+        isLoading={isSubmitting}
+        onToggle={() => setTerminalOpen((open) => !open)}
+      />
     </div>
   );
 }
