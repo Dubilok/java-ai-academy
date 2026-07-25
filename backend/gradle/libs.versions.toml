@@ -37,6 +37,9 @@ docker-java-transport = { module = "com.github.docker-java:docker-java-transport
 # AWS SDK v2
 aws-bedrock-runtime = { module = "software.amazon.awssdk:bedrockruntime", version.ref = "aws-sdk" }
 
+# pgvector Java binding
+pgvector-java = { module = "com.pgvector:pgvector", version = "0.1.6" }
+
 # Utilities
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 lombok   = { module = "org.projectlombok:lombok" }

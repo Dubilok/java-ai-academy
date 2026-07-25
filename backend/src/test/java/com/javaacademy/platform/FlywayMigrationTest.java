@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 @SpringBootTest(webEnvironment = WebEnvironment.NONE)
 @Testcontainers
@@ -21,7 +22,8 @@ class FlywayMigrationTest {
 
     @Container
     @ServiceConnection
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine");
+    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
+            DockerImageName.parse("pgvector/pgvector:pg16").asCompatibleSubstituteFor("postgres"));
 
     @Autowired
     private JdbcTemplate jdbc;
@@ -43,7 +45,8 @@ class FlywayMigrationTest {
             "interview_answers",
             "ai_generation_log",
             "ai_evaluation",
-            "ai_hints");
+            "ai_hints",
+            "lecture_chunks");
 
     private static final List<String> EXPECTED_INDEXES = List.of(
             "idx_courses_technology",
@@ -64,7 +67,8 @@ class FlywayMigrationTest {
             "idx_refresh_tokens_user_id",
             "idx_ai_hints_user_id",
             "idx_ai_hints_task_id",
-            "idx_interview_answers_created_at");
+            "idx_interview_answers_created_at",
+            "idx_lecture_chunks_lecture_id");
 
     @Test
     void allExpectedTables_existAfterMigration() {
@@ -83,7 +87,7 @@ class FlywayMigrationTest {
     @Test
     void allMigrations_areAppliedWithNoChecksumMismatch() {
         MigrationInfo[] applied = flyway.info().applied();
-        assertThat(applied).hasSize(9);
+        assertThat(applied).hasSize(10);
         assertThat(applied[0].getVersion().getVersion()).isEqualTo("1");
         assertThat(applied[0].getDescription()).isEqualTo("initial schema");
         assertThat(applied[0].getState().isApplied()).isTrue();
@@ -120,6 +124,10 @@ class FlywayMigrationTest {
         assertThat(applied[8].getDescription()).isEqualTo("interview answers created at");
         assertThat(applied[8].getState().isApplied()).isTrue();
         assertThat(applied[8].getState().isFailed()).isFalse();
+        assertThat(applied[9].getVersion().getVersion()).isEqualTo("10");
+        assertThat(applied[9].getDescription()).isEqualTo("pgvector");
+        assertThat(applied[9].getState().isApplied()).isTrue();
+        assertThat(applied[9].getState().isFailed()).isFalse();
     }
 
     @Test

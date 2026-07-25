@@ -33,6 +33,7 @@ dependencies {
     implementation(libs.docker.java.transport)
     implementation(libs.jjwt.api)
     implementation(libs.aws.bedrock.runtime)
+    implementation(libs.pgvector.java)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
     runtimeOnly(libs.postgresql)
