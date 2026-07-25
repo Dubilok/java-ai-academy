@@ -58,4 +58,12 @@ public class AiGenerationLog {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    @Nullable
+    @Column(name = "user_id")
+    private UUID userId;
+
+    @Nullable
+    @Column(name = "course_id")
+    private UUID courseId;
 }

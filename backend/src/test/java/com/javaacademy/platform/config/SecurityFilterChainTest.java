@@ -61,6 +61,9 @@ class SecurityFilterChainTest {
     @MockBean
     InterviewSessionService sessionService;
 
+    @MockBean
+    com.javaacademy.platform.ai.service.FinOpsService finOpsService;
+
     // ── public paths ───────────────────────────────────────────────────────────
 
     @Test
@@ -108,9 +111,8 @@ class SecurityFilterChainTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void adminEndpoint_withAdminRole_passesSecurityAndReturns404() throws Exception {
-        // Security passes; no controller registered for this path yet → 404
-        mockMvc.perform(get("/api/v1/admin/ai/usage")).andExpect(status().isNotFound());
+    void adminEndpoint_withAdminRole_passesSecurityAndReturns200() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/ai/usage")).andExpect(isNotSecurityError());
     }
 
     @Test
@@ -138,9 +140,9 @@ class SecurityFilterChainTest {
         given(jwtService.extractEmail(anyString())).willReturn("admin@example.com");
         given(jwtService.extractRole(anyString())).willReturn("ROLE_ADMIN");
 
-        // Admin JWT → ROLE_ADMIN authority → admin path passes → 404 (no handler yet)
+        // Admin JWT → ROLE_ADMIN authority → admin path passes → controller handles it
         mockMvc.perform(get("/api/v1/admin/ai/usage").header("Authorization", "Bearer admin.jwt.token"))
-                .andExpect(status().isNotFound());
+                .andExpect(isNotSecurityError());
     }
 
     @Test

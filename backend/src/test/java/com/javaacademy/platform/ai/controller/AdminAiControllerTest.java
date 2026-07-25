@@ -8,11 +8,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.javaacademy.platform.ai.dto.AiUsageResponse;
 import com.javaacademy.platform.ai.dto.GenerationJobResponse;
 import com.javaacademy.platform.ai.enums.JobStatus;
+import com.javaacademy.platform.ai.service.FinOpsService;
 import com.javaacademy.platform.ai.service.GenerationJobService;
 import com.javaacademy.platform.auth.service.JwtService;
 import com.javaacademy.platform.config.SecurityConfig;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -36,6 +39,9 @@ class AdminAiControllerTest {
 
     @MockBean
     GenerationJobService generationJobService;
+
+    @MockBean
+    FinOpsService finOpsService;
 
     @MockBean
     JwtService jwtService;
@@ -140,5 +146,32 @@ class AdminAiControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FAILED"))
                 .andExpect(jsonPath("$.errorMessage").value("Content generation failed after 3 attempts"));
+    }
+
+    // ── GET /admin/ai/usage ────────────────────────────────────────────────────
+
+    @Test
+    void getUsage_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/ai/usage")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "STUDENT")
+    void getUsage_studentRole_returns403() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/ai/usage")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getUsage_noFilter_returnsAggregatedStats() throws Exception {
+        AiUsageResponse emptyUsage = new AiUsageResponse(null, null, 0L, 0L, 0L, null, List.of(), List.of(), List.of());
+        given(finOpsService.getUsage(null, null)).willReturn(emptyUsage);
+
+        mockMvc.perform(get("/api/v1/admin/ai/usage"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalRequests").value(0))
+                .andExpect(jsonPath("$.byAgent").isArray())
+                .andExpect(jsonPath("$.byUser").isArray())
+                .andExpect(jsonPath("$.byCourse").isArray());
     }
 }

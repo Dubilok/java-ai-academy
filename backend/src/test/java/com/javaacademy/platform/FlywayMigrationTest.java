@@ -68,7 +68,10 @@ class FlywayMigrationTest {
             "idx_ai_hints_user_id",
             "idx_ai_hints_task_id",
             "idx_interview_answers_created_at",
-            "idx_lecture_chunks_lecture_id");
+            "idx_lecture_chunks_lecture_id",
+            "idx_ai_log_user_id",
+            "idx_ai_log_course_id",
+            "idx_ai_log_created_at");
 
     @Test
     void allExpectedTables_existAfterMigration() {
@@ -87,7 +90,7 @@ class FlywayMigrationTest {
     @Test
     void allMigrations_areAppliedWithNoChecksumMismatch() {
         MigrationInfo[] applied = flyway.info().applied();
-        assertThat(applied).hasSize(10);
+        assertThat(applied).hasSize(11);
         assertThat(applied[0].getVersion().getVersion()).isEqualTo("1");
         assertThat(applied[0].getDescription()).isEqualTo("initial schema");
         assertThat(applied[0].getState().isApplied()).isTrue();
@@ -128,6 +131,10 @@ class FlywayMigrationTest {
         assertThat(applied[9].getDescription()).isEqualTo("pgvector");
         assertThat(applied[9].getState().isApplied()).isTrue();
         assertThat(applied[9].getState().isFailed()).isFalse();
+        assertThat(applied[10].getVersion().getVersion()).isEqualTo("11");
+        assertThat(applied[10].getDescription()).isEqualTo("ai log user course");
+        assertThat(applied[10].getState().isApplied()).isTrue();
+        assertThat(applied[10].getState().isFailed()).isFalse();
     }
 
     @Test
