@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
+import { AiHintPanel } from "@/components/ai-hint-panel";
 import { VerdictPanel } from "@/components/verdict-panel";
 import { fetchTask, pollSubmission, submitCode } from "@/lib/queries/tasks";
 
@@ -107,6 +108,8 @@ export default function TaskWorkspacePage({ params }: { params: { taskId: string
           <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-text-muted">
             {task.description}
           </p>
+
+          <AiHintPanel taskId={params.taskId} hasFailed={result?.status === "FAILED"} />
         </section>
 
         <section className="flex w-3/5 flex-col" aria-label="Code editor">
