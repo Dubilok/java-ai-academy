@@ -4,7 +4,7 @@
 > It is Claude's persistent memory across sessions. Read it fully before doing any work.
 > Every completed task, decision, and blocker is recorded here — not in chat history.
 
-**Status:** E7 complete · **Last updated:** 2026-07-25 · **Doc version:** 1.0
+**Status:** E10 complete — all 10 epics done · **Last updated:** 2026-07-25 · **Doc version:** 1.0
 
 ---
 
@@ -588,7 +588,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E10-T3 Multi-stage Docker builds for backend and frontend
 - [x] E10-T4 CI: build → test → image → deploy; secrets from the platform store
 - [x] E10-T5 Load test: 100 concurrent submissions, assert p95 < 5s and no container leak
-- [ ] E10-T6 Backup/restore runbook + `docs/RUNBOOK.md`
+- [x] E10-T6 Backup/restore runbook + `docs/RUNBOOK.md`
 
 ---
 
@@ -762,6 +762,7 @@ cd ide-plugin
 | 2026-07-25 | E10-T3 | ✅ | Multi-stage Docker builds: `backend/Dockerfile` (eclipse-temurin:21-jdk-jammy build → layer extraction → eclipse-temurin:21-jre-jammy runtime, non-root uid 1001, Spring Boot layertools, ZGC + 75% RAM limit, virtual-threads-friendly JAVA_OPTS); `frontend/Dockerfile` (node:20-alpine deps/build/runtime stages, Next.js standalone output, non-root uid 1001); `next.config.mjs` adds `output: 'standalone'`; `.dockerignore` files for both |
 | 2026-07-25 | E10-T4 | ✅ | CI pipeline expanded: `backend` job passes `ANTHROPIC_API_KEY`/`GEMINI_API_KEY` to Gradle tests; `frontend` job fixed (removed non-existent `npm run test` — unit tests land in E7); `docker` job (main-only, needs test jobs) logs in to GHCR via `GITHUB_TOKEN`, builds+pushes backend+frontend images tagged `sha-<sha>` + `latest` with GHA layer caching; `deploy` job (main-only, needs docker, `production` environment) SSH-deploys via `appleboy/ssh-action` when `DEPLOY_HOST` secret is set, else skips gracefully; required secrets documented in §10 |
 | 2026-07-25 | E10-T5 | ✅ | `SandboxLoadTest` (1 real-Docker test): 100 threads started simultaneously via CountDownLatch gate; semaphore limits to 8 concurrent; asserts all complete in ≤5min, all results PASSED (correct code), p95 `durationMs` < 5s, 0 leaked containers; bugfix: `JUnitXmlParser` was looking for `TEST-{testClassName}.xml` but JUnit Platform Console writes `TEST-junit-jupiter.xml` — fixed parser (drop testClassName param), renamed fixture files to `sandbox/passing/` and `sandbox/failing/` subdirs; all 550+ tests pass |
+| 2026-07-25 | E10-T6 | ✅ | `docs/RUNBOOK.md`: 7 sections — service inventory, PostgreSQL full backup (pg_dump) + WAL archiving + verification, Redis AOF backup, full restore procedure, PITR restore, routine ops (rolling restart, Flyway migration inspection, orphaned container cleanup, log rotation, health check), 5 incident playbooks (5xx, container leak, disk full, Redis OOM, JWT rotation), Prometheus metric thresholds |
 
 ---
 
