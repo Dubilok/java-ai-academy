@@ -54,6 +54,8 @@ app:
       retry-initial-delay-ms: 1000
       input-cost-per-million-tokens: ${BEDROCK_INPUT_COST_PER_MILLION:3.00}
       output-cost-per-million-tokens: ${BEDROCK_OUTPUT_COST_PER_MILLION:15.00}
+      guardrail-id: ${AWS_BEDROCK_GUARDRAIL_ID:}        # empty = guardrails disabled
+      guardrail-version: ${AWS_BEDROCK_GUARDRAIL_VERSION:}
 
 server:
   port: 8080

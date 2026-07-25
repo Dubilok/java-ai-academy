@@ -26,6 +26,10 @@ import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
  * Claude-compatible request/response bodies (same JSON shape as the Anthropic Messages API, plus
  * {@code anthropic_version: "bedrock-2023-05-31"}). AWS credentials are resolved by the default
  * credential chain (env vars, instance profile, etc.) — never stored in config.
+ *
+ * <p>When {@code app.llm.bedrock.guardrail-id} and {@code guardrail-version} are set, the guardrail
+ * is attached to every request. If Bedrock reports {@code stop_reason=guardrail_intervened} the
+ * response is rejected with an {@link LlmException} so callers never receive filtered content.
  */
 @Slf4j
 @Primary
@@ -58,6 +62,8 @@ public final class BedrockLlmClient implements LlmClient {
         return withRetry(() -> callApi(request));
     }
 
+    private static final String GUARDRAIL_INTERVENED = "guardrail_intervened";
+
     private LlmResponse callApi(LlmRequest request) {
         String model = request.model() != null ? request.model() : properties.defaultModel();
         ApiRequest body = new ApiRequest(
@@ -68,14 +74,20 @@ public final class BedrockLlmClient implements LlmClient {
 
         String requestJson = toJson(body);
 
-        InvokeModelRequest sdkRequest = InvokeModelRequest.builder()
+        InvokeModelRequest.Builder sdkRequestBuilder = InvokeModelRequest.builder()
                 .modelId(model)
                 .contentType("application/json")
                 .accept("application/json")
-                .body(SdkBytes.fromUtf8String(requestJson))
-                .build();
+                .body(SdkBytes.fromUtf8String(requestJson));
 
-        InvokeModelResponse sdkResponse = bedrockClient.invokeModel(sdkRequest);
+        String guardrailId = properties.guardrailId();
+        String guardrailVersion = properties.guardrailVersion();
+        if (guardrailId != null && !guardrailId.isBlank() && guardrailVersion != null && !guardrailVersion.isBlank()) {
+            sdkRequestBuilder.guardrailIdentifier(guardrailId).guardrailVersion(guardrailVersion);
+            log.debug("Applying Bedrock guardrail {} v{}", guardrailId, guardrailVersion);
+        }
+
+        InvokeModelResponse sdkResponse = bedrockClient.invokeModel(sdkRequestBuilder.build());
         return parseResponse(sdkResponse.body().asUtf8String());
     }
 
@@ -85,6 +97,9 @@ public final class BedrockLlmClient implements LlmClient {
         }
         try {
             ApiResponse response = objectMapper.readValue(responseJson, ApiResponse.class);
+            if (GUARDRAIL_INTERVENED.equals(response.stopReason())) {
+                throw new LlmException("Bedrock Guardrail blocked the response (stop_reason=guardrail_intervened)");
+            }
             String text = response.content().stream()
                     .filter(block -> "text".equals(block.type()))
                     .map(ApiContentBlock::text)
@@ -148,7 +163,8 @@ public final class BedrockLlmClient implements LlmClient {
 
     private record ApiMessage(String role, String content) {}
 
-    private record ApiResponse(List<ApiContentBlock> content, ApiUsage usage) {}
+    private record ApiResponse(
+            List<ApiContentBlock> content, ApiUsage usage, @JsonProperty("stop_reason") String stopReason) {}
 
     private record ApiContentBlock(String type, String text) {}
 

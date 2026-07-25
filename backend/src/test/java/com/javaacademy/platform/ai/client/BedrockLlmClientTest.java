@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javaacademy.platform.ai.BedrockProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.core.exception.SdkServiceException;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
@@ -20,14 +21,27 @@ import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
 class BedrockLlmClientTest {
 
-    static final BedrockProperties PROPS =
-            new BedrockProperties("us-east-1", "anthropic.claude-sonnet-4-5-20250514-v1:0", 2, 10L, 3.0, 15.0);
+    static final BedrockProperties PROPS = new BedrockProperties(
+            "us-east-1", "anthropic.claude-sonnet-4-5-20250514-v1:0", 2, 10L, 3.0, 15.0, null, null);
+
+    static final BedrockProperties PROPS_WITH_GUARDRAIL = new BedrockProperties(
+            "us-east-1", "anthropic.claude-sonnet-4-5-20250514-v1:0", 2, 10L, 3.0, 15.0, "gr-abc123", "1");
 
     static final String SUCCESS_RESPONSE =
             """
             {
               "content": [{"type": "text", "text": "Here is a Socratic question for you."}],
-              "usage": {"input_tokens": 20, "output_tokens": 10}
+              "usage": {"input_tokens": 20, "output_tokens": 10},
+              "stop_reason": "end_turn"
+            }
+            """;
+
+    static final String GUARDRAIL_BLOCKED_RESPONSE =
+            """
+            {
+              "content": [],
+              "usage": {"input_tokens": 20, "output_tokens": 0},
+              "stop_reason": "guardrail_intervened"
             }
             """;
 
@@ -63,7 +77,9 @@ class BedrockLlmClientTest {
                 new LlmRequest("anthropic.claude-3-haiku-20240307-v1:0", "You are a tutor", "Explain Java", 100);
         client.complete(requestWithModel);
 
-        verify(mockBedrockClient).invokeModel(any(InvokeModelRequest.class));
+        ArgumentCaptor<InvokeModelRequest> captor = ArgumentCaptor.forClass(InvokeModelRequest.class);
+        verify(mockBedrockClient).invokeModel(captor.capture());
+        assertThat(captor.getValue().modelId()).isEqualTo("anthropic.claude-3-haiku-20240307-v1:0");
     }
 
     @Test
@@ -75,7 +91,60 @@ class BedrockLlmClientTest {
         LlmResponse response = client.complete(requestWithNoModel);
 
         assertThat(response.content()).isNotBlank();
-        verify(mockBedrockClient).invokeModel(any(InvokeModelRequest.class));
+        ArgumentCaptor<InvokeModelRequest> captor = ArgumentCaptor.forClass(InvokeModelRequest.class);
+        verify(mockBedrockClient).invokeModel(captor.capture());
+        assertThat(captor.getValue().modelId()).isEqualTo("anthropic.claude-sonnet-4-5-20250514-v1:0");
+    }
+
+    // ── guardrail behaviour ───────────────────────────────────────────────────
+
+    @Test
+    void complete_withGuardrailConfig_attachesGuardrailToRequest() {
+        BedrockLlmClient clientWithGuardrail =
+                new BedrockLlmClient(mockBedrockClient, PROPS_WITH_GUARDRAIL, new ObjectMapper());
+        when(mockBedrockClient.invokeModel(any(InvokeModelRequest.class)))
+                .thenReturn(invokeModelResponse(SUCCESS_RESPONSE));
+
+        clientWithGuardrail.complete(request("Explain Java"));
+
+        ArgumentCaptor<InvokeModelRequest> captor = ArgumentCaptor.forClass(InvokeModelRequest.class);
+        verify(mockBedrockClient).invokeModel(captor.capture());
+        assertThat(captor.getValue().guardrailIdentifier()).isEqualTo("gr-abc123");
+        assertThat(captor.getValue().guardrailVersion()).isEqualTo("1");
+    }
+
+    @Test
+    void complete_withoutGuardrailConfig_doesNotAttachGuardrail() {
+        when(mockBedrockClient.invokeModel(any(InvokeModelRequest.class)))
+                .thenReturn(invokeModelResponse(SUCCESS_RESPONSE));
+
+        client.complete(request("Explain Java"));
+
+        ArgumentCaptor<InvokeModelRequest> captor = ArgumentCaptor.forClass(InvokeModelRequest.class);
+        verify(mockBedrockClient).invokeModel(captor.capture());
+        assertThat(captor.getValue().guardrailIdentifier()).isNull();
+    }
+
+    @Test
+    void complete_guardrailIntervened_throwsLlmException() {
+        BedrockLlmClient clientWithGuardrail =
+                new BedrockLlmClient(mockBedrockClient, PROPS_WITH_GUARDRAIL, new ObjectMapper());
+        when(mockBedrockClient.invokeModel(any(InvokeModelRequest.class)))
+                .thenReturn(invokeModelResponse(GUARDRAIL_BLOCKED_RESPONSE));
+
+        assertThatThrownBy(() -> clientWithGuardrail.complete(request("Unsafe content")))
+                .isInstanceOf(LlmException.class)
+                .hasMessageContaining("guardrail_intervened");
+    }
+
+    @Test
+    void complete_guardrailIntervenedStopReason_alwaysRejectedRegardlessOfGuardrailConfig() {
+        when(mockBedrockClient.invokeModel(any(InvokeModelRequest.class)))
+                .thenReturn(invokeModelResponse(GUARDRAIL_BLOCKED_RESPONSE));
+
+        assertThatThrownBy(() -> client.complete(request("Content")))
+                .isInstanceOf(LlmException.class)
+                .hasMessageContaining("guardrail_intervened");
     }
 
     // ── retry behaviour ────────────────────────────────────────────────────────
@@ -120,7 +189,6 @@ class BedrockLlmClientTest {
                 .statusCode(500)
                 .message("InternalServerError")
                 .build();
-        // maxRetries=2 → 3 total attempts
         when(mockBedrockClient.invokeModel(any(InvokeModelRequest.class))).thenThrow(serverError);
 
         assertThatThrownBy(() -> client.complete(request("Hello"))).isInstanceOf(LlmException.class);
@@ -136,7 +204,6 @@ class BedrockLlmClientTest {
         when(mockBedrockClient.invokeModel(any(InvokeModelRequest.class))).thenThrow(clientError);
 
         assertThatThrownBy(() -> client.complete(request("Hello"))).isInstanceOf(LlmException.class);
-        // 400 is not retryable — must call only once
         verify(mockBedrockClient, times(1)).invokeModel(any(InvokeModelRequest.class));
     }
 

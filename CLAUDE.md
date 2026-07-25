@@ -575,7 +575,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 
 ### E9 — Cloud AI track (AWS + Azure)
 - [x] E9-T1 Bedrock route behind `LlmClient`; switch by config, no call-site changes
-- [ ] E9-T2 Bedrock Guardrails on generated content
+- [x] E9-T2 Bedrock Guardrails on generated content
 - [ ] E9-T3 RAG index over the lecture corpus (Azure AI Search or pgvector — see Q2 in §13)
 - [ ] E9-T4 Ground interview answers in retrieved lecture chunks with citations
 - [ ] E9-T5 FinOps dashboard: cost per agent, per course, per student
@@ -738,6 +738,7 @@ cd ide-plugin
 | 2026-07-25 | E8-T7 | ✅ | Threading audit: fixed EDT violation — `AcademyToolWindowPanel.init` was calling `authClient.refresh()` (blocking network) synchronously; refactored to `tryRestoreSessionAsync()` (pooled thread → invokeLater); `ThreadingAuditTest` (5 source-scan tests) asserts all 3 action classes use `executeOnPooledThread` in `actionPerformed`, panel init doesn't block on network, `CourseTreePanel.loadCourses` uses pooled thread; 29 plugin tests pass |
 | 2026-07-25 | E8-T8 | ✅ | `./gradlew verifyPlugin` → **Compatible** with IC-241.19416.15 (IntelliJ IDEA 2024.1.7); initially 1 deprecated API warning (`project.baseDir`); fixed in `StartTaskAction.findSourceRoot` to use `project.basePath` + `LocalFileSystem.findFileByPath`; re-run shows 0 warnings; plugin is dynamic (can reload without IDE restart); `sinceBuild=241`, `untilBuild=null` |
 | 2026-07-25 | E9-T1 | ✅ | `BedrockLlmClient` @ConditionalOnProperty(havingValue="bedrock") implements `LlmClient` using AWS SDK v2 `BedrockRuntimeClient.invokeModel`; request uses Claude-on-Bedrock JSON body (anthropic_version=bedrock-2023-05-31, same response shape as Anthropic API); `AnthropicLlmClient` gains matchIfMissing=true condition; switch via `LLM_PROVIDER=bedrock`/`anthropic` env var; `BedrockProperties` @ConfigurationProperties at `app.llm.bedrock.*`; AWS credentials resolved by default credential chain; 7 unit tests (Mockito mock of BedrockRuntimeClient) — no live AWS calls in CI |
+| 2026-07-25 | E9-T2 | ✅ | Bedrock Guardrails: `BedrockProperties` gains optional `guardrailId`/`guardrailVersion` fields; `BedrockLlmClient.callApi` attaches guardrail to `InvokeModelRequest` when both fields are non-blank; `parseResponse` checks `stop_reason=guardrail_intervened` and throws `LlmException` — callers can never receive filtered content; config via `AWS_BEDROCK_GUARDRAIL_ID`/`AWS_BEDROCK_GUARDRAIL_VERSION` env vars (empty = guardrails disabled); 4 new unit tests (guardrail attached, not attached, intervened with config, intervened without config); 11 total BedrockLlmClientTest tests pass |
 
 ---
 
