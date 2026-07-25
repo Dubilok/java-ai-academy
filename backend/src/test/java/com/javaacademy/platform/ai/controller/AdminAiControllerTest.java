@@ -9,12 +9,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javaacademy.platform.ai.dto.AiUsageResponse;
+import com.javaacademy.platform.ai.dto.EvaluationSummary;
 import com.javaacademy.platform.ai.dto.GenerationJobResponse;
 import com.javaacademy.platform.ai.enums.JobStatus;
+import com.javaacademy.platform.ai.service.EvaluationDashboardService;
 import com.javaacademy.platform.ai.service.FinOpsService;
 import com.javaacademy.platform.ai.service.GenerationJobService;
 import com.javaacademy.platform.auth.service.JwtService;
 import com.javaacademy.platform.config.SecurityConfig;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,6 +45,9 @@ class AdminAiControllerTest {
 
     @MockBean
     FinOpsService finOpsService;
+
+    @MockBean
+    EvaluationDashboardService evaluationDashboardService;
 
     @MockBean
     JwtService jwtService;
@@ -146,6 +152,43 @@ class AdminAiControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FAILED"))
                 .andExpect(jsonPath("$.errorMessage").value("Content generation failed after 3 attempts"));
+    }
+
+    // ── GET /admin/ai/evaluations ──────────────────────────────────────────────
+
+    @Test
+    void getEvaluations_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/ai/evaluations")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "STUDENT")
+    void getEvaluations_studentRole_returns403() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/ai/evaluations")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getEvaluations_noFilter_returnsRecentEvaluationList() throws Exception {
+        UUID evalId = UUID.randomUUID();
+        EvaluationSummary summary = new EvaluationSummary(
+                evalId, "HINT", UUID.randomUUID(), null, null, Instant.parse("2026-07-25T10:00:00Z"));
+        given(evaluationDashboardService.getRecentEvaluations(null)).willReturn(List.of(summary));
+
+        mockMvc.perform(get("/api/v1/admin/ai/evaluations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(evalId.toString()))
+                .andExpect(jsonPath("$[0].targetType").value("HINT"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void getEvaluations_withTargetTypeFilter_delegatesToService() throws Exception {
+        given(evaluationDashboardService.getRecentEvaluations("HINT")).willReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/admin/ai/evaluations").param("targetType", "HINT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
     }
 
     // ── GET /admin/ai/usage ────────────────────────────────────────────────────

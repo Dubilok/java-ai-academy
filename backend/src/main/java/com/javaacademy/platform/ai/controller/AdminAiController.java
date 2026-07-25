@@ -1,14 +1,17 @@
 package com.javaacademy.platform.ai.controller;
 
 import com.javaacademy.platform.ai.dto.AiUsageResponse;
+import com.javaacademy.platform.ai.dto.EvaluationSummary;
 import com.javaacademy.platform.ai.dto.GenerateCourseRequest;
 import com.javaacademy.platform.ai.dto.GenerationJobResponse;
 import com.javaacademy.platform.ai.enums.JobStatus;
+import com.javaacademy.platform.ai.service.EvaluationDashboardService;
 import com.javaacademy.platform.ai.service.FinOpsService;
 import com.javaacademy.platform.ai.service.GenerationJobService;
 import com.javaacademy.platform.common.ApiException;
 import jakarta.validation.Valid;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -29,6 +32,7 @@ public class AdminAiController {
 
     private final GenerationJobService generationJobService;
     private final FinOpsService finOpsService;
+    private final EvaluationDashboardService evaluationDashboardService;
 
     @PostMapping("/generate-course")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -49,5 +53,10 @@ public class AdminAiController {
             @RequestParam(required = false) @Nullable Instant from,
             @RequestParam(required = false) @Nullable Instant to) {
         return finOpsService.getUsage(from, to);
+    }
+
+    @GetMapping("/evaluations")
+    public List<EvaluationSummary> getEvaluations(@RequestParam(required = false) @Nullable String targetType) {
+        return evaluationDashboardService.getRecentEvaluations(targetType);
     }
 }

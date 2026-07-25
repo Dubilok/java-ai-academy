@@ -44,6 +44,7 @@ class HintServiceTest {
     TaskRepository taskRepository;
     SubmissionRepository submissionRepository;
     AiHintRepository aiHintRepository;
+    JudgeService judgeService;
     HintService service;
 
     @BeforeEach
@@ -54,6 +55,7 @@ class HintServiceTest {
         taskRepository = mock(TaskRepository.class);
         submissionRepository = mock(SubmissionRepository.class);
         aiHintRepository = mock(AiHintRepository.class);
+        judgeService = mock(JudgeService.class);
 
         Clock fixedClock = Clock.fixed(Instant.parse("2026-07-24T12:00:00Z"), ZoneOffset.UTC);
 
@@ -64,6 +66,7 @@ class HintServiceTest {
                 taskRepository,
                 submissionRepository,
                 aiHintRepository,
+                judgeService,
                 fixedClock);
 
         User mockUser = user();
@@ -92,6 +95,13 @@ class HintServiceTest {
         service.generateHint(TASK_ID, USER_EMAIL);
 
         verify(aiHintRepository).save(any(AiHint.class));
+    }
+
+    @Test
+    void generateHint_happyPath_triggersJudgeEvaluationAsync() {
+        service.generateHint(TASK_ID, USER_EMAIL);
+
+        verify(judgeService).evaluateHintAsync(any(), any(String.class), any(), any(String.class));
     }
 
     @Test

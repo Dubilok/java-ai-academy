@@ -46,5 +46,9 @@
         <Class name="com.javaacademy.platform.ai.service.SocraticMentorService"/>
         <Bug pattern="CT_CONSTRUCTOR_THROW"/>
     </Match>
+    <Match>
+        <Class name="com.javaacademy.platform.ai.service.JudgeService"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
 
 </FindBugsFilter>

@@ -33,6 +33,7 @@ public class HintService {
     private final TaskRepository taskRepository;
     private final SubmissionRepository submissionRepository;
     private final AiHintRepository aiHintRepository;
+    private final JudgeService judgeService;
     private final Clock clock;
 
     /**
@@ -77,7 +78,9 @@ public class HintService {
         aiHint.setTaskId(taskId);
         aiHint.setHintText(hint);
         aiHint.setCreatedAt(Instant.now(clock));
-        aiHintRepository.save(aiHint);
+        AiHint savedHint = aiHintRepository.save(aiHint);
+
+        judgeService.evaluateHintAsync(savedHint.getId(), task.getTitle(), task.getDescription(), hint);
 
         return new HintResponse(taskId, hint);
     }

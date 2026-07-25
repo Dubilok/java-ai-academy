@@ -71,7 +71,9 @@ class FlywayMigrationTest {
             "idx_lecture_chunks_lecture_id",
             "idx_ai_log_user_id",
             "idx_ai_log_course_id",
-            "idx_ai_log_created_at");
+            "idx_ai_log_created_at",
+            "idx_ai_evaluation_created_at",
+            "idx_ai_evaluation_target_type");
 
     @Test
     void allExpectedTables_existAfterMigration() {
@@ -90,7 +92,7 @@ class FlywayMigrationTest {
     @Test
     void allMigrations_areAppliedWithNoChecksumMismatch() {
         MigrationInfo[] applied = flyway.info().applied();
-        assertThat(applied).hasSize(11);
+        assertThat(applied).hasSize(12);
         assertThat(applied[0].getVersion().getVersion()).isEqualTo("1");
         assertThat(applied[0].getDescription()).isEqualTo("initial schema");
         assertThat(applied[0].getState().isApplied()).isTrue();
@@ -135,6 +137,10 @@ class FlywayMigrationTest {
         assertThat(applied[10].getDescription()).isEqualTo("ai log user course");
         assertThat(applied[10].getState().isApplied()).isTrue();
         assertThat(applied[10].getState().isFailed()).isFalse();
+        assertThat(applied[11].getVersion().getVersion()).isEqualTo("12");
+        assertThat(applied[11].getDescription()).isEqualTo("ai evaluation indexes");
+        assertThat(applied[11].getState().isApplied()).isTrue();
+        assertThat(applied[11].getState().isFailed()).isFalse();
     }
 
     @Test

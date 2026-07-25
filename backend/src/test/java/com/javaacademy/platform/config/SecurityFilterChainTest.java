@@ -67,6 +67,9 @@ class SecurityFilterChainTest {
     @MockBean
     com.javaacademy.platform.ai.mcp.McpToolRegistry mcpToolRegistry;
 
+    @MockBean
+    com.javaacademy.platform.ai.service.EvaluationDashboardService evaluationDashboardService;
+
     // ── public paths ───────────────────────────────────────────────────────────
 
     @Test
