@@ -21,6 +21,7 @@ import com.javaacademy.platform.ai.entity.AiGenerationLog;
 import com.javaacademy.platform.ai.enums.GenerationOutcome;
 import com.javaacademy.platform.ai.repository.AiGenerationLogRepository;
 import com.javaacademy.platform.catalog.enums.Difficulty;
+import com.javaacademy.platform.config.PlatformMetrics;
 import com.javaacademy.platform.sandbox.CodeExecutionEngine;
 import com.javaacademy.platform.sandbox.dto.ExecutionResult;
 import java.time.Clock;
@@ -36,6 +37,7 @@ class ContentArchitectServiceTest {
     ContentParser contentParser;
     CodeExecutionEngine executionEngine;
     AiGenerationLogRepository generationLogRepository;
+    PlatformMetrics metrics;
     ContentArchitectService service;
 
     @BeforeEach
@@ -44,12 +46,14 @@ class ContentArchitectServiceTest {
         contentParser = mock(ContentParser.class);
         executionEngine = mock(CodeExecutionEngine.class);
         generationLogRepository = mock(AiGenerationLogRepository.class);
+        metrics = mock(PlatformMetrics.class);
         service = new ContentArchitectService(
                 llmClient,
                 contentParser,
                 executionEngine,
                 generationLogRepository,
                 TEST_PROPS,
+                metrics,
                 Clock.systemUTC(),
                 "test-system-prompt");
     }

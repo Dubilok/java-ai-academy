@@ -35,6 +35,7 @@ dependencies {
     implementation(libs.aws.bedrock.runtime)
     implementation(libs.pgvector.java)
     implementation(libs.logstash.logback.encoder)
+    runtimeOnly(libs.micrometer.registry.prometheus)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
     runtimeOnly(libs.postgresql)

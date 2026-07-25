@@ -13,6 +13,7 @@ import com.javaacademy.platform.auth.repository.UserRepository;
 import com.javaacademy.platform.catalog.entity.Task;
 import com.javaacademy.platform.catalog.repository.TaskRepository;
 import com.javaacademy.platform.common.ApiException;
+import com.javaacademy.platform.config.PlatformMetrics;
 import com.javaacademy.platform.progress.dto.SubmissionResponse;
 import com.javaacademy.platform.progress.dto.SubmitResponse;
 import com.javaacademy.platform.progress.entity.Submission;
@@ -22,6 +23,7 @@ import com.javaacademy.platform.progress.service.ProgressService;
 import com.javaacademy.platform.progress.service.SubmissionService;
 import com.javaacademy.platform.sandbox.CodeExecutionEngine;
 import com.javaacademy.platform.sandbox.SubmissionQueue;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -39,6 +41,7 @@ class SubmissionServiceTest {
     SubmissionQueue submissionQueue;
     ProgressService progressService;
     CodeExecutionEngine executionEngine;
+    PlatformMetrics metrics;
     Clock clock;
     SubmissionService submissionService;
 
@@ -50,7 +53,12 @@ class SubmissionServiceTest {
         submissionQueue = mock(SubmissionQueue.class);
         progressService = mock(ProgressService.class);
         executionEngine = mock(CodeExecutionEngine.class);
+        metrics = mock(PlatformMetrics.class);
         clock = Clock.fixed(Instant.parse("2026-07-24T12:00:00Z"), ZoneOffset.UTC);
+
+        io.micrometer.core.instrument.Timer timer = new SimpleMeterRegistry().timer("test.timer");
+        when(metrics.submissionDurationTimer()).thenReturn(timer);
+
         submissionService = new SubmissionService(
                 submissionRepository,
                 progressService,
@@ -58,6 +66,7 @@ class SubmissionServiceTest {
                 userRepository,
                 taskRepository,
                 submissionQueue,
+                metrics,
                 clock);
     }
 

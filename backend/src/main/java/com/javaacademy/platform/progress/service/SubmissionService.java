@@ -5,6 +5,7 @@ import com.javaacademy.platform.auth.repository.UserRepository;
 import com.javaacademy.platform.catalog.entity.Task;
 import com.javaacademy.platform.catalog.repository.TaskRepository;
 import com.javaacademy.platform.common.ApiException;
+import com.javaacademy.platform.config.PlatformMetrics;
 import com.javaacademy.platform.progress.dto.SubmissionResponse;
 import com.javaacademy.platform.progress.dto.SubmitResponse;
 import com.javaacademy.platform.progress.entity.Submission;
@@ -18,6 +19,7 @@ import com.javaacademy.platform.sandbox.enums.ExecutionStatus;
 import com.javaacademy.platform.sandbox.util.JavaClassNameExtractor;
 import java.time.Clock;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -35,6 +37,7 @@ public class SubmissionService {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final SubmissionQueue submissionQueue;
+    private final PlatformMetrics metrics;
     private final Clock clock;
 
     @Transactional
@@ -105,9 +108,14 @@ public class SubmissionService {
         // Flush before the long sandbox call so we don't hold a DB connection for 5s
         submissionRepository.flush();
 
+        long sandboxStartNs = System.nanoTime();
         ExecutionResult result = executionEngine.execute(request);
+        metrics.submissionDurationTimer().record(System.nanoTime() - sandboxStartNs, TimeUnit.NANOSECONDS);
 
         boolean isPassed = result.status() == ExecutionStatus.PASSED;
+        if (!isPassed) {
+            metrics.recordSandboxFailure();
+        }
         submission.setStatus(isPassed ? SubmissionStatus.PASSED : SubmissionStatus.FAILED);
         submission.setLogs(result.logs());
         submission.setDurationMs(result.durationMs());

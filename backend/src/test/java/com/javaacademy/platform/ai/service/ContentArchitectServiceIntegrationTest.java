@@ -12,6 +12,7 @@ import com.javaacademy.platform.ai.client.LlmResponse;
 import com.javaacademy.platform.ai.dto.GeneratedContent;
 import com.javaacademy.platform.ai.repository.AiGenerationLogRepository;
 import com.javaacademy.platform.catalog.enums.Difficulty;
+import com.javaacademy.platform.config.PlatformMetrics;
 import com.javaacademy.platform.sandbox.CodeExecutionEngine;
 import com.javaacademy.platform.sandbox.dto.ExecutionResult;
 import jakarta.validation.Validation;
@@ -52,6 +53,7 @@ class ContentArchitectServiceIntegrationTest {
     LlmClient llmClient;
     CodeExecutionEngine executionEngine;
     AiGenerationLogRepository generationLogRepository;
+    PlatformMetrics metrics;
     ContentArchitectService service;
 
     @BeforeEach
@@ -59,6 +61,7 @@ class ContentArchitectServiceIntegrationTest {
         llmClient = mock(LlmClient.class);
         executionEngine = mock(CodeExecutionEngine.class);
         generationLogRepository = mock(AiGenerationLogRepository.class);
+        metrics = mock(PlatformMetrics.class);
 
         // Real ContentParser — exercises full Jackson + Validator path
         ObjectMapper objectMapper = new ObjectMapper();
@@ -71,6 +74,7 @@ class ContentArchitectServiceIntegrationTest {
                 executionEngine,
                 generationLogRepository,
                 TEST_PROPS,
+                metrics,
                 Clock.systemUTC(),
                 "test-system-prompt");
     }

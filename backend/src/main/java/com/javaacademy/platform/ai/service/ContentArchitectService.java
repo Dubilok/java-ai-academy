@@ -10,6 +10,7 @@ import com.javaacademy.platform.ai.entity.AiGenerationLog;
 import com.javaacademy.platform.ai.enums.AgentType;
 import com.javaacademy.platform.ai.enums.GenerationOutcome;
 import com.javaacademy.platform.ai.repository.AiGenerationLogRepository;
+import com.javaacademy.platform.config.PlatformMetrics;
 import com.javaacademy.platform.sandbox.CodeExecutionEngine;
 import com.javaacademy.platform.sandbox.dto.ExecutionRequest;
 import com.javaacademy.platform.sandbox.dto.ExecutionResult;
@@ -39,6 +40,7 @@ public class ContentArchitectService {
     private final CodeExecutionEngine executionEngine;
     private final AiGenerationLogRepository generationLogRepository;
     private final AnthropicProperties anthropicProperties;
+    private final PlatformMetrics metrics;
     private final Clock clock;
     private final String systemPrompt;
 
@@ -49,6 +51,7 @@ public class ContentArchitectService {
             CodeExecutionEngine executionEngine,
             AiGenerationLogRepository generationLogRepository,
             AnthropicProperties anthropicProperties,
+            PlatformMetrics metrics,
             Clock clock,
             @Value("classpath:prompts/content-architect-system.txt") Resource systemPromptResource)
             throws IOException {
@@ -57,6 +60,7 @@ public class ContentArchitectService {
         this.executionEngine = executionEngine;
         this.generationLogRepository = generationLogRepository;
         this.anthropicProperties = anthropicProperties;
+        this.metrics = metrics;
         this.clock = clock;
         this.systemPrompt = systemPromptResource.getContentAsString(StandardCharsets.UTF_8);
     }
@@ -68,6 +72,7 @@ public class ContentArchitectService {
             CodeExecutionEngine executionEngine,
             AiGenerationLogRepository generationLogRepository,
             AnthropicProperties anthropicProperties,
+            PlatformMetrics metrics,
             Clock clock,
             String systemPrompt) {
         this.llmClient = llmClient;
@@ -75,6 +80,7 @@ public class ContentArchitectService {
         this.executionEngine = executionEngine;
         this.generationLogRepository = generationLogRepository;
         this.anthropicProperties = anthropicProperties;
+        this.metrics = metrics;
         this.clock = clock;
         this.systemPrompt = systemPrompt;
     }
@@ -171,6 +177,7 @@ public class ContentArchitectService {
         logEntry.setLatencyMs(latencyMs);
         logEntry.setCreatedAt(Instant.now(clock));
         generationLogRepository.save(logEntry);
+        metrics.recordTokens(promptTokens, completionTokens);
         log.info(
                 "Generation log saved: outcome={} promptTokens={} completionTokens={} costUsd={} latencyMs={}",
                 outcome,
