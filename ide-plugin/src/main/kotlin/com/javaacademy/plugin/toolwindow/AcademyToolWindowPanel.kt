@@ -22,17 +22,20 @@ class AcademyToolWindowPanel(private val project: Project) : JBPanel<AcademyTool
     private val apiClient = ApiClient(baseUrl = "http://localhost:8080")
 
     init {
-        tryRestoreSession()
         refresh()
+        tryRestoreSessionAsync()
     }
 
-    private fun tryRestoreSession() {
+    private fun tryRestoreSessionAsync() {
         val storedRefreshToken = TokenStore.getRefreshToken() ?: return
-        try {
-            val response = authClient.refresh(storedRefreshToken)
-            TokenStore.setTokens(response.accessToken, response.refreshToken)
-        } catch (_: Exception) {
-            TokenStore.clearTokens()
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                val response = authClient.refresh(storedRefreshToken)
+                TokenStore.setTokens(response.accessToken, response.refreshToken)
+            } catch (_: Exception) {
+                TokenStore.clearTokens()
+            }
+            ApplicationManager.getApplication().invokeLater { refresh() }
         }
     }
 
