@@ -79,7 +79,7 @@ public final class DockerCodeExecutionService implements CodeExecutionEngine {
             String logs = collectLogs(containerId);
             long durationMs = System.currentTimeMillis() - startMs;
 
-            var xmlResult = JUnitXmlParser.parseFailedTestCount(hostWorkDir, request.testClassName());
+            var xmlResult = JUnitXmlParser.parseFailedTestCount(hostWorkDir);
             if (xmlResult.isPresent()) {
                 int failedTests = xmlResult.getAsInt();
                 return failedTests == 0

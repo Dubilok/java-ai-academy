@@ -17,12 +17,12 @@ import org.xml.sax.SAXException;
 public final class JUnitXmlParser {
 
     /**
-     * Parses the JUnit Platform Console XML report for the given test class and returns the number
-     * of failed + errored tests. Returns empty if the report file does not exist (e.g. compilation
-     * failed before any test ran) or cannot be parsed.
+     * Parses the JUnit Platform Console XML report and returns the number of failed + errored
+     * tests. The console launcher always writes {@code TEST-junit-jupiter.xml}; returns empty when
+     * that file is absent (compilation failed, or JVM terminated before tests ran).
      */
-    public static OptionalInt parseFailedTestCount(Path reportDir, String testClassName) {
-        Path reportFile = reportDir.resolve("TEST-" + testClassName + ".xml");
+    public static OptionalInt parseFailedTestCount(Path reportDir) {
+        Path reportFile = reportDir.resolve("TEST-junit-jupiter.xml");
         if (!Files.exists(reportFile)) {
             return OptionalInt.empty();
         }

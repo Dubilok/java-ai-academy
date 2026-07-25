@@ -13,32 +13,34 @@ class JUnitXmlParserTest {
 
     @Test
     void parseFailedTestCount_allPassing_returnsZero() throws URISyntaxException {
-        Path reportDir = resourceDir("sandbox/TEST-TaskTest-passing.xml").getParent();
-        OptionalInt result = JUnitXmlParser.parseFailedTestCount(reportDir, "TaskTest-passing");
+        Path reportDir = resourceDir("sandbox/passing/TEST-junit-jupiter.xml").getParent();
+        OptionalInt result = JUnitXmlParser.parseFailedTestCount(reportDir);
         assertThat(result).isPresent();
         assertThat(result.getAsInt()).isZero();
     }
 
     @Test
     void parseFailedTestCount_twoFailuresOneError_returnsSumThree() throws URISyntaxException {
-        Path reportDir = resourceDir("sandbox/TEST-TaskTest-failing.xml").getParent();
-        OptionalInt result = JUnitXmlParser.parseFailedTestCount(reportDir, "TaskTest-failing");
+        Path reportDir = resourceDir("sandbox/failing/TEST-junit-jupiter.xml").getParent();
+        OptionalInt result = JUnitXmlParser.parseFailedTestCount(reportDir);
         assertThat(result).isPresent();
         assertThat(result.getAsInt()).isEqualTo(3);
     }
 
     @Test
     void parseFailedTestCount_reportFileAbsent_returnsEmpty() throws URISyntaxException {
-        Path reportDir = resourceDir("sandbox/TEST-TaskTest-passing.xml").getParent();
-        OptionalInt result = JUnitXmlParser.parseFailedTestCount(reportDir, "NonExistentTest");
+        // Use a directory that exists but has no TEST-junit-jupiter.xml in it
+        Path reportDir = resourceDir("sandbox/passing/TEST-junit-jupiter.xml")
+                .getParent()
+                .getParent();
+        OptionalInt result = JUnitXmlParser.parseFailedTestCount(reportDir);
         assertThat(result).isEmpty();
     }
 
     @Test
-    void parseFailedTestCount_missingFailuresAttribute_treatsAsZero() throws URISyntaxException {
-        // The passing XML has failures="0" which should parse to 0
-        Path reportDir = resourceDir("sandbox/TEST-TaskTest-passing.xml").getParent();
-        OptionalInt result = JUnitXmlParser.parseFailedTestCount(reportDir, "TaskTest-passing");
+    void parseFailedTestCount_zeroFailuresZeroErrors_returnsZero() throws URISyntaxException {
+        Path reportDir = resourceDir("sandbox/passing/TEST-junit-jupiter.xml").getParent();
+        OptionalInt result = JUnitXmlParser.parseFailedTestCount(reportDir);
         assertThat(result.getAsInt()).isGreaterThanOrEqualTo(0);
     }
 
