@@ -48,7 +48,7 @@ public class EvaluationReportParser {
                 .orElse(0));
 
         EvaluationReport report =
-                new EvaluationReport(sessionId, technology, overallScore, dimensions, Instant.now(clock));
+                new EvaluationReport(sessionId, technology, overallScore, dimensions, Instant.now(clock), null);
         validateReport(report);
         return report;
     }

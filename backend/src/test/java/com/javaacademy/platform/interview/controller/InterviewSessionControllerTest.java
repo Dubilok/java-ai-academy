@@ -297,6 +297,7 @@ class InterviewSessionControllerTest {
                 new EvaluationDimension("edgeCaseAwareness", overallScore, "Good."),
                 new EvaluationDimension("modernJavaAwareness", overallScore, "Good."),
                 new EvaluationDimension("learningPotential", overallScore, "Good."));
-        return new EvaluationReport(sessionId, "Java", overallScore, dimensions, Instant.parse("2026-07-25T10:00:00Z"));
+        return new EvaluationReport(
+                sessionId, "Java", overallScore, dimensions, Instant.parse("2026-07-25T10:00:00Z"), null);
     }
 }

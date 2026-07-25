@@ -401,7 +401,7 @@ class InterviewSessionServiceTest {
                 new EvaluationDimension("modernJavaAwareness", overallScore, "Good."),
                 new EvaluationDimension("learningPotential", overallScore, "Good."));
         return new EvaluationReport(
-                SESSION_ID, TECHNOLOGY, overallScore, dimensions, Instant.parse("2026-07-25T10:00:00Z"));
+                SESSION_ID, TECHNOLOGY, overallScore, dimensions, Instant.parse("2026-07-25T10:00:00Z"), null);
     }
 
     private InterviewQuestion makeQuestion(UUID id, String questionText, InterviewDifficulty difficulty) {
