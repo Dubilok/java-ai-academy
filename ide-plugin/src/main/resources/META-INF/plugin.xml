@@ -1,0 +1,39 @@
+<idea-plugin>
+    <id>com.javaacademy.plugin</id>
+    <name>Java AI Academy</name>
+    <vendor>Java AI Academy</vendor>
+
+    <description><![CDATA[
+        Learn Java 21+ directly from IntelliJ IDEA.
+        Browse courses, start tasks, submit code for instant JUnit verification,
+        and get Socratic AI hints — without leaving your IDE.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow
+            id="Java AI Academy"
+            anchor="right"
+            secondary="false"
+            icon="/icons/toolwindow.svg"
+            factoryClass="com.javaacademy.plugin.toolwindow.AcademyToolWindowFactory"/>
+    </extensions>
+
+    <actions>
+        <group id="AcademyActionGroup" text="Java AI Academy" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action
+                id="Academy.StartTask"
+                class="com.javaacademy.plugin.actions.StartTaskAction"
+                text="Start Task"
+                description="Load the selected task template into a new Solution.java file"/>
+            <action
+                id="Academy.VerifyTask"
+                class="com.javaacademy.plugin.actions.VerifyTaskAction"
+                text="Verify Solution"
+                description="Submit the current Solution.java and show the verdict"/>
+        </group>
+    </actions>
+</idea-plugin>

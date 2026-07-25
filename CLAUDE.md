@@ -564,7 +564,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E7-T10 a11y pass: keyboard nav, focus rings, `aria-live` verdicts
 
 ### E8 — IntelliJ IDEA plugin (Kotlin)
-- [ ] E8-T1 Plugin project, Gradle IntelliJ Plugin 2.x, `runIde` launches
+- [x] E8-T1 Plugin project, Gradle IntelliJ Plugin 2.x, `runIde` launches
 - [ ] E8-T2 Login dialog; JWT into `PasswordSafe`; refresh handling
 - [ ] E8-T3 "Java AI Academy" tool window with course/task tree
 - [ ] E8-T4 "Start task" action: creates `Solution.java` from the template inside a `WriteCommandAction`
@@ -729,6 +729,7 @@ cd ide-plugin
 | 2026-07-24 | E3-T4 | ✅ | `SandboxLeakTest` (4 tests): 50-iteration unit test rotates through start-failure/timeout/happy-path modes and asserts `removeContainerCmd` called exactly 50 times; null-id guard test asserts remove NOT called when createContainer fails; timeout path asserts kill then remove; real-Docker integration test runs 5 actual submissions and asserts `listContainersCmd --all` with runner image filter returns empty; `DE_MIGHT_IGNORE` added to spotbugs-exclude for test classes |
 | 2026-07-24 | E3-T5 | ✅ | `JUnitXmlParser.parseFailedTestCount` reads `TEST-<className>.xml` from report dir, parses `failures+errors` from `<testsuite>` attributes (XXE protected), returns `OptionalInt` (empty = file absent); `ExecutionResult` gains `failedTests` field; service prefers XML over exit code; `JUnitXmlParserTest` (4 tests) with passing/failing XML fixtures under `src/test/resources/sandbox/`; all tests pass |
 | 2026-07-24 | E3-T6 | ✅ | `SubmissionQueue` interface + `RedisSubmissionQueue` (FIFO via `rightPush`/`leftPop`, key `sandbox:submission-queue`); `JavaClassNameExtractor` util extracts public class name from Java source via regex; `SubmissionService.processSubmission` @Transactional — loads Submission+Task, builds ExecutionRequest, calls CodeExecutionEngine, persists verdict, calls ProgressService; `SubmissionWorker` virtual-thread loop dequeues and dispatches; unit tests (RedisSubmissionQueueTest, JavaClassNameExtractorTest) + Testcontainers Redis integration test (3 tests, @MockBean SubmissionWorker to prevent race); all tests pass |
+| 2026-07-25 | E8-T1 | ✅ | IntelliJ IDEA plugin scaffold: Gradle Kotlin DSL with Gradle IntelliJ Plugin 2.x; `intellijPlatform { intellijIdeaCommunity("2024.1.7") }`; OkHttp + Moshi deps; `AcademyToolWindowFactory`/`AcademyToolWindowPanel` stub; `StartTaskAction`/`VerifyTaskAction` stubs; `META-INF/plugin.xml` declares plugin; `PluginDescriptorTest` verifies plugin.xml is on classpath with correct id/name/factory; test compiled to JVM 17 (`compileTestKotlin jvmTarget=JVM_17` + `compileTestJava release=17`) to match IntelliJ 2024.1 bundled JDK; 1 test passes |
 
 ---
 
