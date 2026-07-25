@@ -7,6 +7,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VfsUtil
 import com.javaacademy.plugin.api.ApiClient
@@ -71,6 +72,8 @@ class StartTaskAction(
 
     private fun findSourceRoot(project: com.intellij.openapi.project.Project): VirtualFile? {
         val sourceRoots = ProjectRootManager.getInstance(project).contentSourceRoots
-        return sourceRoots.firstOrNull() ?: project.baseDir
+        if (sourceRoots.isNotEmpty()) return sourceRoots.first()
+        val basePath = project.basePath ?: return null
+        return LocalFileSystem.getInstance().findFileByPath(basePath)
     }
 }

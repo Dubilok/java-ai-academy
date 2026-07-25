@@ -571,7 +571,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E8-T5 "Verify" action: reads editor content, submits, shows verdict (green banner / red log panel)
 - [x] E8-T6 Inline ToDo-comment guidance from the tutor agent (no solution code)
 - [x] E8-T7 Threading audit: zero blocking calls on the EDT
-- [ ] E8-T8 Plugin verifier passes for the target IDE range
+- [x] E8-T8 Plugin verifier passes for the target IDE range
 
 ### E9 — Cloud AI track (AWS + Azure)
 - [ ] E9-T1 Bedrock route behind `LlmClient`; switch by config, no call-site changes
@@ -736,6 +736,7 @@ cd ide-plugin
 | 2026-07-25 | E8-T5 | ✅ | `VerifyTaskAction` (parameterized: taskId+title+apiClient): reads source from active editor or currently open file; submits via `ApiClient.submitSolution` (POST /tasks/{id}/submissions) on pooled thread; polls `ApiClient.pollSubmission` every 1s up to 30s; shows PASSED/FAILED as IntelliJ balloon notification (registered `notificationGroup` in plugin.xml); CourseTreePanel gains "Verify" button (enabled on task selection); `SubmitResponse`/`SubmissionStatus` DTOs; 3 new `ApiClientTest` (submit returns submissionId, PASSED poll, FAILED poll with logs); 19 plugin tests pass |
 | 2026-07-25 | E8-T6 | ✅ | `GetHintAction` (parameterized): calls `ApiClient.fetchHint` (POST /tasks/{id}/ai-hint); inserts hint into editor at caret position as `// TODO (Academy Hint):` comment block via `WriteCommandAction`; rate-limit (429) and "submit first" (400) errors show contextual warning messages; `HintResponse` DTO; `dispatchAction` helper extracted from `CourseTreePanel` to avoid repetition; CourseTreePanel gains "Hint" button; 2 `ApiClientTest` (Socratic hint, 429 rate-limit) + 3 `GetHintActionTest` (comment format, multi-line, no code leakage); 24 plugin tests pass |
 | 2026-07-25 | E8-T7 | ✅ | Threading audit: fixed EDT violation — `AcademyToolWindowPanel.init` was calling `authClient.refresh()` (blocking network) synchronously; refactored to `tryRestoreSessionAsync()` (pooled thread → invokeLater); `ThreadingAuditTest` (5 source-scan tests) asserts all 3 action classes use `executeOnPooledThread` in `actionPerformed`, panel init doesn't block on network, `CourseTreePanel.loadCourses` uses pooled thread; 29 plugin tests pass |
+| 2026-07-25 | E8-T8 | ✅ | `./gradlew verifyPlugin` → **Compatible** with IC-241.19416.15 (IntelliJ IDEA 2024.1.7); initially 1 deprecated API warning (`project.baseDir`); fixed in `StartTaskAction.findSourceRoot` to use `project.basePath` + `LocalFileSystem.findFileByPath`; re-run shows 0 warnings; plugin is dynamic (can reload without IDE restart); `sinceBuild=241`, `untilBuild=null` |
 
 ---
 
