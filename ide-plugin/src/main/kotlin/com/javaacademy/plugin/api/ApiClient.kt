@@ -35,6 +35,7 @@ data class SubmitResponse(@Json(name = "submissionId") val submissionId: String)
 private data class SubmitRequestBody(val source: String)
 
 data class SubmissionStatus(val status: String, val logs: String?)
+data class HintResponse(val hint: String)
 
 class ApiClient(
     private val baseUrl: String,
@@ -95,6 +96,22 @@ class ApiClient(
             }
             return moshi.adapter(TaskDetail::class.java).fromJson(body)
                 ?: throw IOException("Could not parse task response")
+        }
+    }
+
+    fun fetchHint(taskId: String): String {
+        val accessToken = TokenStore.getAccessToken() ?: throw IOException("Not authenticated")
+        val request = Request.Builder()
+            .url("$baseUrl/api/v1/tasks/$taskId/ai-hint")
+            .header("Authorization", "Bearer $accessToken")
+            .header("X-Client", "intellij-plugin/0.1.0")
+            .post("{}".toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        httpClient.newCall(request).execute().use { response ->
+            val responseBody = response.body?.string() ?: throw IOException("Empty response")
+            if (!response.isSuccessful) throw IOException("${response.code}: $responseBody")
+            return moshi.adapter(HintResponse::class.java).fromJson(responseBody)?.hint
+                ?: throw IOException("Could not parse hint response")
         }
     }
 

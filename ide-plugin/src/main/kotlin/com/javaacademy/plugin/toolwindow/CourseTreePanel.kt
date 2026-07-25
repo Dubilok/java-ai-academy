@@ -8,6 +8,7 @@ import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.JBUI
+import com.javaacademy.plugin.actions.GetHintAction
 import com.javaacademy.plugin.actions.StartTaskAction
 import com.javaacademy.plugin.actions.VerifyTaskAction
 import com.javaacademy.plugin.api.ApiClient
@@ -39,6 +40,7 @@ class CourseTreePanel(private val project: Project, private val apiClient: ApiCl
     private val statusLabel = JBLabel("Loading courses…", SwingConstants.CENTER)
     private val startTaskButton = JButton("Start Task").apply { isEnabled = false }
     private val verifyButton = JButton("Verify").apply { isEnabled = false }
+    private val hintButton = JButton("Hint").apply { isEnabled = false }
 
     init {
         border = JBUI.Borders.empty(4)
@@ -52,47 +54,33 @@ class CourseTreePanel(private val project: Project, private val apiClient: ApiCl
             val taskNode = selectedNode?.userObject as? TaskNode
             startTaskButton.isEnabled = taskNode != null
             verifyButton.isEnabled = taskNode != null
+            hintButton.isEnabled = taskNode != null
             startTaskButton.text = if (taskNode != null) "Start: ${taskNode.task.title}" else "Start Task"
         }
 
         startTaskButton.addActionListener {
             val selectedNode = tree.selectionPath?.lastPathComponent as? DefaultMutableTreeNode
             val taskNode = selectedNode?.userObject as? TaskNode ?: return@addActionListener
-            val action = StartTaskAction(taskNode.task.id, taskNode.task.title, apiClient)
-            val fakeEvent = com.intellij.openapi.actionSystem.AnActionEvent.createFromDataContext(
-                "AcademyToolWindow",
-                null,
-                com.intellij.openapi.actionSystem.DataContext { dataId ->
-                    when (dataId) {
-                        com.intellij.openapi.actionSystem.CommonDataKeys.PROJECT.name -> project
-                        else -> null
-                    }
-                }
-            )
-            action.actionPerformed(fakeEvent)
+            dispatchAction(StartTaskAction(taskNode.task.id, taskNode.task.title, apiClient))
         }
 
         verifyButton.addActionListener {
             val selectedNode = tree.selectionPath?.lastPathComponent as? DefaultMutableTreeNode
             val taskNode = selectedNode?.userObject as? TaskNode ?: return@addActionListener
-            val action = VerifyTaskAction(taskNode.task.id, taskNode.task.title, apiClient)
-            val fakeEvent = com.intellij.openapi.actionSystem.AnActionEvent.createFromDataContext(
-                "AcademyToolWindow",
-                null,
-                com.intellij.openapi.actionSystem.DataContext { dataId ->
-                    when (dataId) {
-                        com.intellij.openapi.actionSystem.CommonDataKeys.PROJECT.name -> project
-                        else -> null
-                    }
-                }
-            )
-            action.actionPerformed(fakeEvent)
+            dispatchAction(VerifyTaskAction(taskNode.task.id, taskNode.task.title, apiClient))
+        }
+
+        hintButton.addActionListener {
+            val selectedNode = tree.selectionPath?.lastPathComponent as? DefaultMutableTreeNode
+            val taskNode = selectedNode?.userObject as? TaskNode ?: return@addActionListener
+            dispatchAction(GetHintAction(taskNode.task.id, taskNode.task.title, apiClient))
         }
 
         val topBar = JPanel(BorderLayout())
         val rightButtons = JPanel(FlowLayout(FlowLayout.RIGHT, 4, 0))
         val refreshButton = JButton("Refresh")
         refreshButton.addActionListener { loadCourses() }
+        rightButtons.add(hintButton)
         rightButtons.add(verifyButton)
         rightButtons.add(startTaskButton)
         rightButtons.add(refreshButton)
@@ -147,5 +135,18 @@ class CourseTreePanel(private val project: Project, private val apiClient: ApiCl
             remove(scrollPane)
             add(statusLabel, BorderLayout.CENTER)
         }
+    }
+
+    private fun dispatchAction(action: com.intellij.openapi.actionSystem.AnAction) {
+        val dataContext = com.intellij.openapi.actionSystem.DataContext { dataId ->
+            when (dataId) {
+                com.intellij.openapi.actionSystem.CommonDataKeys.PROJECT.name -> project
+                else -> null
+            }
+        }
+        val event = com.intellij.openapi.actionSystem.AnActionEvent.createFromDataContext(
+            "AcademyToolWindow", null, dataContext
+        )
+        action.actionPerformed(event)
     }
 }

@@ -569,7 +569,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E8-T3 "Java AI Academy" tool window with course/task tree
 - [x] E8-T4 "Start task" action: creates `Solution.java` from the template inside a `WriteCommandAction`
 - [x] E8-T5 "Verify" action: reads editor content, submits, shows verdict (green banner / red log panel)
-- [ ] E8-T6 Inline ToDo-comment guidance from the tutor agent (no solution code)
+- [x] E8-T6 Inline ToDo-comment guidance from the tutor agent (no solution code)
 - [ ] E8-T7 Threading audit: zero blocking calls on the EDT
 - [ ] E8-T8 Plugin verifier passes for the target IDE range
 
@@ -734,6 +734,7 @@ cd ide-plugin
 | 2026-07-25 | E8-T3 | ✅ | `ApiClient.fetchBootstrap()` calls `GET /api/v1/ide/bootstrap` with Bearer + `X-Client` header; `CourseTreePanel`: IntelliJ `Tree` (TreeSpeedSearch, no root visible), loads courses+tasks on pooled thread, populates `CourseNode`/`TaskNode` tree with title/difficulty/XP info, Refresh button, empty/error states; `AcademyToolWindowPanel.showAuthenticatedView()` now mounts `CourseTreePanel`; backend: `GET /api/v1/ide/bootstrap` (requires JWT, returns all published courses with flattened tasks sorted by module/lecture/task order); 2 controller slice tests (`@WithMockUser` 200 with nested task, 401 unauthenticated); 3 `ApiClientTest` (two courses, empty array, 401); all pass |
 | 2026-07-25 | E8-T4 | ✅ | `StartTaskAction` (parameterized with taskId+title+apiClient): fetches task template on pooled thread via `ApiClient.fetchTask(taskId)`; creates or overwrites `Solution.java` in first content source root via `WriteCommandAction.runWriteCommandAction`; falls back to project.baseDir if no source root; opens file in editor; `CourseTreePanel` wires tree selection listener → enables "Start Task" button → dispatches action with correct DataContext; `ApiClient.fetchTask` returns `TaskDetail(id, title, templateCode?)`; 2 new `ApiClientTest` (template present, null template); 16 plugin tests pass |
 | 2026-07-25 | E8-T5 | ✅ | `VerifyTaskAction` (parameterized: taskId+title+apiClient): reads source from active editor or currently open file; submits via `ApiClient.submitSolution` (POST /tasks/{id}/submissions) on pooled thread; polls `ApiClient.pollSubmission` every 1s up to 30s; shows PASSED/FAILED as IntelliJ balloon notification (registered `notificationGroup` in plugin.xml); CourseTreePanel gains "Verify" button (enabled on task selection); `SubmitResponse`/`SubmissionStatus` DTOs; 3 new `ApiClientTest` (submit returns submissionId, PASSED poll, FAILED poll with logs); 19 plugin tests pass |
+| 2026-07-25 | E8-T6 | ✅ | `GetHintAction` (parameterized): calls `ApiClient.fetchHint` (POST /tasks/{id}/ai-hint); inserts hint into editor at caret position as `// TODO (Academy Hint):` comment block via `WriteCommandAction`; rate-limit (429) and "submit first" (400) errors show contextual warning messages; `HintResponse` DTO; `dispatchAction` helper extracted from `CourseTreePanel` to avoid repetition; CourseTreePanel gains "Hint" button; 2 `ApiClientTest` (Socratic hint, 429 rate-limit) + 3 `GetHintActionTest` (comment format, multi-line, no code leakage); 24 plugin tests pass |
 
 ---
 

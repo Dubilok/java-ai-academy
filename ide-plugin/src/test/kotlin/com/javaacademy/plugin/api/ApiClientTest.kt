@@ -175,6 +175,34 @@ class ApiClientTest {
         assertEquals("Test failed: expected 1 but was 0", status.logs)
     }
 
+    @Test
+    fun `fetchHint_validTask_returnsSocraticHint`() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"hint":"What does the equals() method check?"}""")
+        )
+        setFakeToken(buildFakeJwt())
+
+        val hint = client.fetchHint("task-123")
+
+        assertEquals("What does the equals() method check?", hint)
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/api/v1/tasks/task-123/ai-hint", request.path)
+    }
+
+    @Test
+    fun `fetchHint_rateLimited_throwsIoException`() {
+        server.enqueue(MockResponse().setResponseCode(429).setBody("""{"title":"Too Many Requests"}"""))
+        setFakeToken(buildFakeJwt())
+
+        assertFailsWith<java.io.IOException> {
+            client.fetchHint("task-123")
+        }
+    }
+
     private fun buildFakeJwt(): String {
         val header = java.util.Base64.getUrlEncoder().withoutPadding()
             .encodeToString("""{"alg":"HS256"}""".toByteArray())
