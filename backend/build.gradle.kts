@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.jjwt.api)
     implementation(libs.aws.bedrock.runtime)
     implementation(libs.pgvector.java)
+    implementation(libs.logstash.logback.encoder)
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
     runtimeOnly(libs.postgresql)
