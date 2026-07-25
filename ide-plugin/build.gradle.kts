@@ -27,6 +27,7 @@ dependencies {
 
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.junit.jupiter:junit-jupiter:5.10.3")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
@@ -54,19 +55,12 @@ intellijPlatform {
     }
 }
 
+// IntelliJ IDEA 2024.1 bundles JBR 17 — plugin and test code must both target JVM 17
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(17)
 }
 
 tasks {
-    compileTestKotlin {
-        compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        }
-    }
-    compileTestJava {
-        options.release.set(17)
-    }
     test {
         useJUnitPlatform()
     }
