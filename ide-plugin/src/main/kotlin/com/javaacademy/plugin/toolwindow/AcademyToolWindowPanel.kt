@@ -6,6 +6,7 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.util.ui.JBUI
+import com.javaacademy.plugin.api.ApiClient
 import com.javaacademy.plugin.auth.AuthClient
 import com.javaacademy.plugin.auth.LoginDialog
 import com.javaacademy.plugin.auth.TokenStore
@@ -18,6 +19,7 @@ import javax.swing.SwingConstants
 class AcademyToolWindowPanel(private val project: Project) : JBPanel<AcademyToolWindowPanel>(BorderLayout()) {
 
     private val authClient = AuthClient(baseUrl = "http://localhost:8080")
+    private val apiClient = ApiClient(baseUrl = "http://localhost:8080")
 
     init {
         tryRestoreSession()
@@ -67,7 +69,7 @@ class AcademyToolWindowPanel(private val project: Project) : JBPanel<AcademyTool
     private fun showAuthenticatedView() {
         val email = TokenStore.extractEmail(TokenStore.getAccessToken() ?: "") ?: "Unknown"
         val panel = JPanel(BorderLayout())
-        panel.border = JBUI.Borders.empty(8)
+        panel.border = JBUI.Borders.empty(4)
 
         val userLabel = JBLabel("Signed in as: $email", SwingConstants.LEFT)
         val signOutButton = JButton("Sign Out")
@@ -77,16 +79,14 @@ class AcademyToolWindowPanel(private val project: Project) : JBPanel<AcademyTool
         }
 
         val topBar = JPanel(BorderLayout())
+        topBar.border = JBUI.Borders.emptyBottom(4)
         topBar.add(userLabel, BorderLayout.CENTER)
         topBar.add(signOutButton, BorderLayout.EAST)
 
-        val content = JBLabel(
-            "<html><center>Course browser coming soon.</center></html>",
-            SwingConstants.CENTER
-        )
+        val courseTree = CourseTreePanel(project, apiClient)
 
         panel.add(topBar, BorderLayout.NORTH)
-        panel.add(content, BorderLayout.CENTER)
+        panel.add(courseTree, BorderLayout.CENTER)
         add(panel, BorderLayout.CENTER)
     }
 

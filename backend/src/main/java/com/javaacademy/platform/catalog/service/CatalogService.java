@@ -2,6 +2,8 @@ package com.javaacademy.platform.catalog.service;
 
 import com.javaacademy.platform.catalog.dto.CourseDetailResponse;
 import com.javaacademy.platform.catalog.dto.CourseResponse;
+import com.javaacademy.platform.catalog.dto.IdeBootstrapCourseResponse;
+import com.javaacademy.platform.catalog.dto.IdeBootstrapTaskResponse;
 import com.javaacademy.platform.catalog.dto.LectureResponse;
 import com.javaacademy.platform.catalog.dto.LectureStubResponse;
 import com.javaacademy.platform.catalog.dto.ModuleResponse;
@@ -101,5 +103,18 @@ public class CatalogService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Task not found: " + id));
 
         return CatalogMapper.toTaskResponse(task);
+    }
+
+    public List<IdeBootstrapCourseResponse> getIdeBootstrap() {
+        return courseRepository.findAllPublished(PageRequest.of(0, MAX_LIMIT)).stream()
+                .map(course -> {
+                    List<IdeBootstrapTaskResponse> tasks = taskRepository.findAllByCourseId(course.getId()).stream()
+                            .map(task -> new IdeBootstrapTaskResponse(
+                                    task.getId(), task.getTitle(), task.getDifficulty(), task.getXpReward()))
+                            .toList();
+                    return new IdeBootstrapCourseResponse(
+                            course.getId(), course.getTitle(), course.getTechnology(), tasks);
+                })
+                .toList();
     }
 }

@@ -2,10 +2,12 @@ package com.javaacademy.platform.catalog.controller;
 
 import com.javaacademy.platform.catalog.dto.CourseDetailResponse;
 import com.javaacademy.platform.catalog.dto.CourseResponse;
+import com.javaacademy.platform.catalog.dto.IdeBootstrapCourseResponse;
 import com.javaacademy.platform.catalog.dto.LectureResponse;
 import com.javaacademy.platform.catalog.dto.PagedResponse;
 import com.javaacademy.platform.catalog.dto.TaskResponse;
 import com.javaacademy.platform.catalog.service.CatalogService;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -41,5 +43,10 @@ public class CatalogController {
     @GetMapping("/tasks/{id}")
     public TaskResponse getTask(@PathVariable UUID id) {
         return catalogService.getTask(id);
+    }
+
+    @GetMapping("/ide/bootstrap")
+    public List<IdeBootstrapCourseResponse> ideBootstrap() {
+        return catalogService.getIdeBootstrap();
     }
 }

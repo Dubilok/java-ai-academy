@@ -14,4 +14,8 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
 
     @Query("SELECT COUNT(task) FROM Task task WHERE task.lecture.module.course.id = :courseId")
     long countTasksInCourse(@Param("courseId") UUID courseId);
+
+    @Query(
+            "SELECT task FROM Task task WHERE task.lecture.module.course.id = :courseId ORDER BY task.lecture.module.orderIndex ASC, task.lecture.orderIndex ASC, task.id ASC")
+    List<Task> findAllByCourseId(@Param("courseId") UUID courseId);
 }

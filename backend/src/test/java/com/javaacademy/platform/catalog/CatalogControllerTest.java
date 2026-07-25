@@ -12,6 +12,8 @@ import com.javaacademy.platform.auth.service.JwtService;
 import com.javaacademy.platform.catalog.controller.CatalogController;
 import com.javaacademy.platform.catalog.dto.CourseDetailResponse;
 import com.javaacademy.platform.catalog.dto.CourseResponse;
+import com.javaacademy.platform.catalog.dto.IdeBootstrapCourseResponse;
+import com.javaacademy.platform.catalog.dto.IdeBootstrapTaskResponse;
 import com.javaacademy.platform.catalog.dto.LectureResponse;
 import com.javaacademy.platform.catalog.dto.ModuleResponse;
 import com.javaacademy.platform.catalog.dto.PagedResponse;
@@ -178,5 +180,30 @@ class CatalogControllerTest {
         given(catalogService.getTask(id)).willThrow(new ApiException(HttpStatus.NOT_FOUND, "Task not found"));
 
         mockMvc.perform(get("/api/v1/tasks/" + id)).andExpect(status().isNotFound());
+    }
+
+    // ── GET /ide/bootstrap ────────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser
+    void ideBootstrap_authenticated_returnsCourseList() throws Exception {
+        UUID courseId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        IdeBootstrapTaskResponse task = new IdeBootstrapTaskResponse(taskId, "Hello World", "EASY", 10L);
+        IdeBootstrapCourseResponse course = new IdeBootstrapCourseResponse(courseId, "Java 21", "Java", List.of(task));
+        given(catalogService.getIdeBootstrap()).willReturn(List.of(course));
+
+        mockMvc.perform(get("/api/v1/ide/bootstrap"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(courseId.toString()))
+                .andExpect(jsonPath("$[0].title").value("Java 21"))
+                .andExpect(jsonPath("$[0].technology").value("Java"))
+                .andExpect(jsonPath("$[0].tasks[0].title").value("Hello World"))
+                .andExpect(jsonPath("$[0].tasks[0].xpReward").value(10));
+    }
+
+    @Test
+    void ideBootstrap_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(get("/api/v1/ide/bootstrap")).andExpect(status().isUnauthorized());
     }
 }

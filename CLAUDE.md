@@ -566,7 +566,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 ### E8 — IntelliJ IDEA plugin (Kotlin)
 - [x] E8-T1 Plugin project, Gradle IntelliJ Plugin 2.x, `runIde` launches
 - [x] E8-T2 Login dialog; JWT into `PasswordSafe`; refresh handling
-- [ ] E8-T3 "Java AI Academy" tool window with course/task tree
+- [x] E8-T3 "Java AI Academy" tool window with course/task tree
 - [ ] E8-T4 "Start task" action: creates `Solution.java` from the template inside a `WriteCommandAction`
 - [ ] E8-T5 "Verify" action: reads editor content, submits, shows verdict (green banner / red log panel)
 - [ ] E8-T6 Inline ToDo-comment guidance from the tutor agent (no solution code)
@@ -731,6 +731,7 @@ cd ide-plugin
 | 2026-07-24 | E3-T6 | ✅ | `SubmissionQueue` interface + `RedisSubmissionQueue` (FIFO via `rightPush`/`leftPop`, key `sandbox:submission-queue`); `JavaClassNameExtractor` util extracts public class name from Java source via regex; `SubmissionService.processSubmission` @Transactional — loads Submission+Task, builds ExecutionRequest, calls CodeExecutionEngine, persists verdict, calls ProgressService; `SubmissionWorker` virtual-thread loop dequeues and dispatches; unit tests (RedisSubmissionQueueTest, JavaClassNameExtractorTest) + Testcontainers Redis integration test (3 tests, @MockBean SubmissionWorker to prevent race); all tests pass |
 | 2026-07-25 | E8-T1 | ✅ | IntelliJ IDEA plugin scaffold: Gradle Kotlin DSL with Gradle IntelliJ Plugin 2.x; `intellijPlatform { intellijIdeaCommunity("2024.1.7") }`; OkHttp + Moshi deps; `AcademyToolWindowFactory`/`AcademyToolWindowPanel` stub; `StartTaskAction`/`VerifyTaskAction` stubs; `META-INF/plugin.xml` declares plugin; `PluginDescriptorTest` verifies plugin.xml is on classpath with correct id/name/factory; all plugin code targets JVM 17 (IntelliJ 2024.1 bundles JBR 17.0.12); 1 test passes |
 | 2026-07-25 | E8-T2 | ✅ | `AuthClient` (OkHttp + Moshi): `login` + `refresh` calls to `/api/v1/auth/{login,refresh}`; `TokenStore` singleton: access token in-memory, refresh token in `PasswordSafe` (keyed by `generateServiceName`), `extractEmail(jwt)` parses JWT payload `sub` claim without extra deps; `LoginDialog` extends `DialogWrapper` with email + password fields; `AcademyToolWindowPanel` updated: on init restores session via stored refresh token (background thread), shows Sign In button when unauthenticated or signed-in state with email + Sign Out; all UI transitions via `ApplicationManager.invokeLater`; `MockWebServer` added to test deps; 5 `AuthClientTest` (happy path, 401, 500, refresh) + 5 `TokenStoreTest` (email extraction, edge cases); 11 tests pass |
+| 2026-07-25 | E8-T3 | ✅ | `ApiClient.fetchBootstrap()` calls `GET /api/v1/ide/bootstrap` with Bearer + `X-Client` header; `CourseTreePanel`: IntelliJ `Tree` (TreeSpeedSearch, no root visible), loads courses+tasks on pooled thread, populates `CourseNode`/`TaskNode` tree with title/difficulty/XP info, Refresh button, empty/error states; `AcademyToolWindowPanel.showAuthenticatedView()` now mounts `CourseTreePanel`; backend: `GET /api/v1/ide/bootstrap` (requires JWT, returns all published courses with flattened tasks sorted by module/lecture/task order); 2 controller slice tests (`@WithMockUser` 200 with nested task, 401 unauthenticated); 3 `ApiClientTest` (two courses, empty array, 401); all pass |
 
 ---
 
