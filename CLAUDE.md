@@ -574,7 +574,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E8-T8 Plugin verifier passes for the target IDE range
 
 ### E9 — Cloud AI track (AWS + Azure)
-- [ ] E9-T1 Bedrock route behind `LlmClient`; switch by config, no call-site changes
+- [x] E9-T1 Bedrock route behind `LlmClient`; switch by config, no call-site changes
 - [ ] E9-T2 Bedrock Guardrails on generated content
 - [ ] E9-T3 RAG index over the lecture corpus (Azure AI Search or pgvector — see Q2 in §13)
 - [ ] E9-T4 Ground interview answers in retrieved lecture chunks with citations
@@ -737,6 +737,7 @@ cd ide-plugin
 | 2026-07-25 | E8-T6 | ✅ | `GetHintAction` (parameterized): calls `ApiClient.fetchHint` (POST /tasks/{id}/ai-hint); inserts hint into editor at caret position as `// TODO (Academy Hint):` comment block via `WriteCommandAction`; rate-limit (429) and "submit first" (400) errors show contextual warning messages; `HintResponse` DTO; `dispatchAction` helper extracted from `CourseTreePanel` to avoid repetition; CourseTreePanel gains "Hint" button; 2 `ApiClientTest` (Socratic hint, 429 rate-limit) + 3 `GetHintActionTest` (comment format, multi-line, no code leakage); 24 plugin tests pass |
 | 2026-07-25 | E8-T7 | ✅ | Threading audit: fixed EDT violation — `AcademyToolWindowPanel.init` was calling `authClient.refresh()` (blocking network) synchronously; refactored to `tryRestoreSessionAsync()` (pooled thread → invokeLater); `ThreadingAuditTest` (5 source-scan tests) asserts all 3 action classes use `executeOnPooledThread` in `actionPerformed`, panel init doesn't block on network, `CourseTreePanel.loadCourses` uses pooled thread; 29 plugin tests pass |
 | 2026-07-25 | E8-T8 | ✅ | `./gradlew verifyPlugin` → **Compatible** with IC-241.19416.15 (IntelliJ IDEA 2024.1.7); initially 1 deprecated API warning (`project.baseDir`); fixed in `StartTaskAction.findSourceRoot` to use `project.basePath` + `LocalFileSystem.findFileByPath`; re-run shows 0 warnings; plugin is dynamic (can reload without IDE restart); `sinceBuild=241`, `untilBuild=null` |
+| 2026-07-25 | E9-T1 | ✅ | `BedrockLlmClient` @ConditionalOnProperty(havingValue="bedrock") implements `LlmClient` using AWS SDK v2 `BedrockRuntimeClient.invokeModel`; request uses Claude-on-Bedrock JSON body (anthropic_version=bedrock-2023-05-31, same response shape as Anthropic API); `AnthropicLlmClient` gains matchIfMissing=true condition; switch via `LLM_PROVIDER=bedrock`/`anthropic` env var; `BedrockProperties` @ConfigurationProperties at `app.llm.bedrock.*`; AWS credentials resolved by default credential chain; 7 unit tests (Mockito mock of BedrockRuntimeClient) — no live AWS calls in CI |
 
 ---
 

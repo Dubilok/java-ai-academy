@@ -31,6 +31,7 @@ app:
     timeout-seconds: 5
     max-concurrent: 8
   llm:
+    active-provider: ${LLM_PROVIDER:anthropic}   # anthropic | bedrock
     anthropic:
       api-key: ${ANTHROPIC_API_KEY:change-me-set-in-env}
       base-url: https://api.anthropic.com
@@ -46,6 +47,13 @@ app:
       default-model: ${GEMINI_MODEL:gemini-2.0-flash}
       max-retries: 3
       retry-initial-delay-ms: 1000
+    bedrock:
+      region: ${AWS_REGION:us-east-1}
+      default-model: ${AWS_BEDROCK_MODEL_ID:anthropic.claude-sonnet-4-5-20250514-v1:0}
+      max-retries: 3
+      retry-initial-delay-ms: 1000
+      input-cost-per-million-tokens: ${BEDROCK_INPUT_COST_PER_MILLION:3.00}
+      output-cost-per-million-tokens: ${BEDROCK_OUTPUT_COST_PER_MILLION:15.00}
 
 server:
   port: 8080

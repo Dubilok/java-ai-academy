@@ -3,7 +3,7 @@ package com.javaacademy.platform.ai.client;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.javaacademy.platform.ai.AnthropicProperties;
+import com.javaacademy.platform.ai.BedrockProperties;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -11,34 +11,46 @@ import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClient;
+import software.amazon.awssdk.core.SdkBytes;
+import software.amazon.awssdk.core.exception.SdkServiceException;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
+import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelRequest;
+import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
+/**
+ * AWS Bedrock route for the LlmClient interface.
+ *
+ * <p>Active when {@code app.llm.active-provider=bedrock}. Calls the Bedrock InvokeModel API with
+ * Claude-compatible request/response bodies (same JSON shape as the Anthropic Messages API, plus
+ * {@code anthropic_version: "bedrock-2023-05-31"}). AWS credentials are resolved by the default
+ * credential chain (env vars, instance profile, etc.) — never stored in config.
+ */
 @Slf4j
 @Primary
 @Service
-@ConditionalOnProperty(name = "app.llm.active-provider", havingValue = "anthropic", matchIfMissing = true)
-public final class AnthropicLlmClient implements LlmClient {
+@ConditionalOnProperty(name = "app.llm.active-provider", havingValue = "bedrock")
+public final class BedrockLlmClient implements LlmClient {
 
-    private static final String MESSAGES_PATH = "/v1/messages";
+    private static final String ANTHROPIC_BEDROCK_VERSION = "bedrock-2023-05-31";
 
-    private final RestClient restClient;
-    private final AnthropicProperties properties;
+    private final BedrockRuntimeClient bedrockClient;
+    private final BedrockProperties properties;
     private final ObjectMapper objectMapper;
 
-    public AnthropicLlmClient(
-            RestClient.Builder restClientBuilder, AnthropicProperties properties, ObjectMapper objectMapper) {
+    public BedrockLlmClient(BedrockProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
         this.objectMapper = objectMapper;
-        this.restClient = restClientBuilder
-                .baseUrl(properties.baseUrl())
-                .defaultHeader("x-api-key", properties.apiKey())
-                .defaultHeader("anthropic-version", properties.apiVersion())
+        this.bedrockClient = BedrockRuntimeClient.builder()
+                .region(Region.of(properties.region()))
                 .build();
+    }
+
+    BedrockLlmClient(BedrockRuntimeClient bedrockClient, BedrockProperties properties, ObjectMapper objectMapper) {
+        this.bedrockClient = bedrockClient;
+        this.properties = properties;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -49,26 +61,27 @@ public final class AnthropicLlmClient implements LlmClient {
     private LlmResponse callApi(LlmRequest request) {
         String model = request.model() != null ? request.model() : properties.defaultModel();
         ApiRequest body = new ApiRequest(
-                model,
+                ANTHROPIC_BEDROCK_VERSION,
                 request.maxTokens(),
                 request.systemPrompt(),
                 List.of(new ApiMessage("user", request.userPrompt())));
 
         String requestJson = toJson(body);
-        String responseJson = restClient
-                .post()
-                .uri(MESSAGES_PATH)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(requestJson)
-                .retrieve()
-                .body(String.class);
 
-        return parseResponse(responseJson);
+        InvokeModelRequest sdkRequest = InvokeModelRequest.builder()
+                .modelId(model)
+                .contentType("application/json")
+                .accept("application/json")
+                .body(SdkBytes.fromUtf8String(requestJson))
+                .build();
+
+        InvokeModelResponse sdkResponse = bedrockClient.invokeModel(sdkRequest);
+        return parseResponse(sdkResponse.body().asUtf8String());
     }
 
     private LlmResponse parseResponse(String responseJson) {
         if (responseJson == null || responseJson.isBlank()) {
-            throw new LlmException("Empty response from Anthropic API");
+            throw new LlmException("Empty response from Bedrock API");
         }
         try {
             ApiResponse response = objectMapper.readValue(responseJson, ApiResponse.class);
@@ -76,11 +89,11 @@ public final class AnthropicLlmClient implements LlmClient {
                     .filter(block -> "text".equals(block.type()))
                     .map(ApiContentBlock::text)
                     .findFirst()
-                    .orElseThrow(() -> new LlmException("No text block in Anthropic API response"));
+                    .orElseThrow(() -> new LlmException("No text block in Bedrock API response"));
             return new LlmResponse(
                     text, response.usage().inputTokens(), response.usage().outputTokens());
         } catch (IOException parseException) {
-            throw new LlmException("Failed to parse Anthropic API response: " + parseException.getMessage());
+            throw new LlmException("Failed to parse Bedrock API response: " + parseException.getMessage());
         }
     }
 
@@ -92,23 +105,18 @@ public final class AnthropicLlmClient implements LlmClient {
             }
             try {
                 return operation.get();
-            } catch (HttpServerErrorException serverException) {
-                lastException = serverException;
-                log.warn(
-                        "LLM request failed with server error (attempt {}): {}",
-                        attempt + 1,
-                        serverException.getStatusCode());
-            } catch (HttpClientErrorException clientException) {
-                if (clientException.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                    lastException = clientException;
-                    log.warn("LLM request rate-limited (attempt {}), backing off", attempt + 1);
+            } catch (SdkServiceException sdkException) {
+                int statusCode = sdkException.statusCode();
+                if (statusCode == 429 || statusCode >= 500) {
+                    lastException = sdkException;
+                    log.warn("Bedrock request failed (attempt {}, status {}), will retry", attempt + 1, statusCode);
                 } else {
-                    throw new LlmException("LLM request failed: " + clientException.getMessage());
+                    throw new LlmException("Bedrock request failed: " + sdkException.getMessage());
                 }
             }
         }
         throw new LlmException(
-                "LLM request failed after " + properties.maxRetries() + " retries: " + lastException.getMessage());
+                "Bedrock request failed after " + properties.maxRetries() + " retries: " + lastException.getMessage());
     }
 
     private void sleepWithJitter(int attempt) {
@@ -126,14 +134,17 @@ public final class AnthropicLlmClient implements LlmClient {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException serializeException) {
-            throw new LlmException("Failed to serialize LLM request: " + serializeException.getMessage());
+            throw new LlmException("Failed to serialize Bedrock request: " + serializeException.getMessage());
         }
     }
 
-    // ── Internal Anthropic API DTOs ───────────────────────────────────────────
+    // ── Internal Bedrock/Claude API DTOs (same shape as Anthropic Messages API) ─
 
     private record ApiRequest(
-            String model, @JsonProperty("max_tokens") int maxTokens, String system, List<ApiMessage> messages) {}
+            @JsonProperty("anthropic_version") String anthropicVersion,
+            @JsonProperty("max_tokens") int maxTokens,
+            String system,
+            List<ApiMessage> messages) {}
 
     private record ApiMessage(String role, String content) {}
 
