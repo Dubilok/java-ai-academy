@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #0F172A;
+    --foreground: #F1F5F9;
+    --card: #1E293B;
+    --muted: #94A3B8;
+    --accent-java: #EA580C;
+    --accent-blue: #3B82F6;
+    --success: #10B981;
+    --error: #F43F5E;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-bg-base text-text-primary font-sans antialiased;
+  }
+
+  * {
+    @apply transition-colors duration-200 ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition-duration: 0ms !important;
+      animation-duration: 0ms !important;
+    }
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent-blue ring-offset-2 ring-offset-bg-base;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp {
+    @apply font-mono;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
