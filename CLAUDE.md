@@ -586,7 +586,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E10-T1 Structured JSON logging + request correlation ids
 - [x] E10-T2 Micrometer metrics: submission latency, sandbox failures, token spend
 - [x] E10-T3 Multi-stage Docker builds for backend and frontend
-- [ ] E10-T4 CI: build → test → image → deploy; secrets from the platform store
+- [x] E10-T4 CI: build → test → image → deploy; secrets from the platform store
 - [ ] E10-T5 Load test: 100 concurrent submissions, assert p95 < 5s and no container leak
 - [ ] E10-T6 Backup/restore runbook + `docs/RUNBOOK.md`
 
@@ -596,6 +596,19 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 
 ### Prerequisites
 JDK 21, Docker 24+, Node 20+, pnpm or npm, `psql` client. Copy `.env.example` → `.env` and fill it.
+
+### Required GitHub Actions secrets
+Configure these in **Settings → Secrets and variables → Actions** on the GitHub repository:
+
+| Secret | Required | Purpose |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | yes (PRs) | Claude Code PR review + backend tests that call Anthropic stubs |
+| `GEMINI_API_KEY` | no | Backend tests that exercise Gemini stub paths |
+| `DEPLOY_HOST` | optional | SSH host for the production server; if absent the deploy step skips gracefully |
+| `DEPLOY_USER` | optional | SSH username on the production server |
+| `DEPLOY_SSH_KEY` | optional | Private key (RSA or Ed25519) for SSH; public key must be in `authorized_keys` on the server |
+
+`GITHUB_TOKEN` is provided automatically by GitHub Actions — no manual configuration needed for GHCR image pushes.
 
 ### Local stack
 ```bash
@@ -747,6 +760,7 @@ cd ide-plugin
 | 2026-07-25 | E10-T1 | ✅ | Structured JSON logging: `logstash-logback-encoder` 8.0 added to version catalog + build.gradle.kts; `logback-spring.xml` with `CONSOLE` appender (human-readable for local/dev/test) and `JSON_CONSOLE` appender (LogstashEncoder for prod/staging); `CorrelationIdFilter` (OncePerRequestFilter, Order=1) generates/propagates `X-Correlation-ID` header and puts `correlationId` into SLF4J MDC for every request; 4 unit tests (CorrelationIdFilterTest) verifying propagation, generation, blank header, MDC cleanup; build green |
 | 2026-07-25 | E10-T2 | ✅ | Micrometer metrics: `micrometer-registry-prometheus` 1.13.6 added; `management.endpoints` exposes prometheus+metrics; `PlatformMetrics` @Component (Timer academy.submission.duration, Counter academy.sandbox.failures, Counter academy.ai.tokens); wired into `SubmissionService.processSubmission` (manual nanoTime timing + failure counter) and `ContentArchitectService.saveLog` (token spend counter); `SubmissionServiceTest` and `ContentArchitectServiceTest` updated with `PlatformMetrics` mock + real `SimpleMeterRegistry` timer; SpotBugs NP_NULL avoided by manual timing instead of Timer.record(Supplier); build green |
 | 2026-07-25 | E10-T3 | ✅ | Multi-stage Docker builds: `backend/Dockerfile` (eclipse-temurin:21-jdk-jammy build → layer extraction → eclipse-temurin:21-jre-jammy runtime, non-root uid 1001, Spring Boot layertools, ZGC + 75% RAM limit, virtual-threads-friendly JAVA_OPTS); `frontend/Dockerfile` (node:20-alpine deps/build/runtime stages, Next.js standalone output, non-root uid 1001); `next.config.mjs` adds `output: 'standalone'`; `.dockerignore` files for both |
+| 2026-07-25 | E10-T4 | ✅ | CI pipeline expanded: `backend` job passes `ANTHROPIC_API_KEY`/`GEMINI_API_KEY` to Gradle tests; `frontend` job fixed (removed non-existent `npm run test` — unit tests land in E7); `docker` job (main-only, needs test jobs) logs in to GHCR via `GITHUB_TOKEN`, builds+pushes backend+frontend images tagged `sha-<sha>` + `latest` with GHA layer caching; `deploy` job (main-only, needs docker, `production` environment) SSH-deploys via `appleboy/ssh-action` when `DEPLOY_HOST` secret is set, else skips gracefully; required secrets documented in §10 |
 
 ---
 
