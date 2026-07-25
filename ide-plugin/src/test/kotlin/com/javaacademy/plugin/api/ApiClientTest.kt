@@ -86,6 +86,45 @@ class ApiClientTest {
         }
     }
 
+    @Test
+    fun `fetchTask_validId_returnsTaskDetail`() {
+        val taskId = "task-uuid-123"
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"id":"$taskId","title":"Hello World","templateCode":"public class Solution {}"}"""
+                )
+        )
+        setFakeToken(buildFakeJwt())
+
+        val task = client.fetchTask(taskId)
+
+        assertEquals(taskId, task.id)
+        assertEquals("Hello World", task.title)
+        assertEquals("public class Solution {}", task.templateCode)
+
+        val request = server.takeRequest()
+        assertEquals("GET", request.method)
+        assertEquals("/api/v1/tasks/$taskId", request.path)
+    }
+
+    @Test
+    fun `fetchTask_noTemplate_returnsNullTemplateCode`() {
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"id":"t1","title":"Task"}""")
+        )
+        setFakeToken(buildFakeJwt())
+
+        val task = client.fetchTask("t1")
+
+        assertEquals(null, task.templateCode)
+    }
+
     private fun buildFakeJwt(): String {
         val header = java.util.Base64.getUrlEncoder().withoutPadding()
             .encodeToString("""{"alg":"HS256"}""".toByteArray())
