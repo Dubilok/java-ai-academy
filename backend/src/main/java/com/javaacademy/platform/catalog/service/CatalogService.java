@@ -76,7 +76,13 @@ public class CatalogService {
                 .map(module -> {
                     List<LectureStubResponse> lectureStubs =
                             lectureRepository.findByModuleOrderByOrderIndexAsc(module).stream()
-                                    .map(CatalogMapper::toLectureStubResponse)
+                                    .map(lecture -> {
+                                        List<TaskStubResponse> taskStubs =
+                                                taskRepository.findByLectureOrderByIdAsc(lecture).stream()
+                                                        .map(CatalogMapper::toTaskStubResponse)
+                                                        .toList();
+                                        return CatalogMapper.toLectureStubResponse(lecture, taskStubs);
+                                    })
                                     .toList();
                     return CatalogMapper.toModuleResponse(module, lectureStubs);
                 })
@@ -103,6 +109,33 @@ public class CatalogService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Task not found: " + id));
 
         return CatalogMapper.toTaskResponse(task);
+    }
+
+    /** All courses (published + unpublished) for admin pickers, newest first. */
+    public List<CourseResponse> listAllCourses() {
+        return courseRepository.findAllOrderByCreatedAtDesc().stream()
+                .map(CatalogMapper::toCourseResponse)
+                .toList();
+    }
+
+    /** Modules for a course, ordered by orderIndex. */
+    public List<ModuleResponse> listModulesForCourse(UUID courseId) {
+        Course course = courseRepository
+                .findById(courseId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Course not found: " + courseId));
+        return moduleRepository.findByCourseOrderByOrderIndexAsc(course).stream()
+                .map(module -> CatalogMapper.toModuleResponse(module, List.of()))
+                .toList();
+    }
+
+    /** Toggles the published flag on a course and returns the updated response. */
+    @Transactional
+    public CourseResponse togglePublish(UUID courseId) {
+        Course course = courseRepository
+                .findById(courseId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Course not found: " + courseId));
+        course.setPublished(!course.isPublished());
+        return CatalogMapper.toCourseResponse(course);
     }
 
     public List<IdeBootstrapCourseResponse> getIdeBootstrap() {

@@ -1,20 +1,39 @@
 import { api } from "@/lib/api";
 import {
+  AdminCourseSchema,
+  AdminModuleSchema,
   AiUsageResponseSchema,
   GenerateCourseResponseSchema,
   JobStatusSchema,
-  type AiUsageRow,
+  type AdminCourse,
+  type AdminModule,
+  type AiUsageResponse,
   type JobStatus,
 } from "@/lib/schemas/admin";
+import { z } from "zod";
 
-export async function fetchAiUsage(): Promise<AiUsageRow[]> {
+export async function fetchAiUsage(): Promise<AiUsageResponse> {
   const response = await api.get("/admin/ai/usage");
-  const parsed = AiUsageResponseSchema.safeParse(response.data);
-  return parsed.success ? parsed.data.items : (response.data as AiUsageRow[]);
+  return AiUsageResponseSchema.parse(response.data);
 }
 
-export async function generateCourse(technology: string): Promise<string> {
-  const response = await api.post("/admin/ai/generate-course", { technology });
+export async function fetchAdminCourses(): Promise<AdminCourse[]> {
+  const response = await api.get("/admin/courses");
+  return z.array(AdminCourseSchema).parse(response.data);
+}
+
+export async function fetchAdminModules(courseId: string): Promise<AdminModule[]> {
+  const response = await api.get(`/admin/courses/${courseId}/modules`);
+  return z.array(AdminModuleSchema).parse(response.data);
+}
+
+export async function generateCourse(payload: {
+  technology: string;
+  courseId?: string;
+  moduleId?: string;
+  moduleName?: string;
+}): Promise<string> {
+  const response = await api.post("/admin/ai/generate-course", payload);
   const parsed = GenerateCourseResponseSchema.parse(response.data);
   return parsed.jobId;
 }

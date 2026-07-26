@@ -65,12 +65,12 @@ public class FinOpsService {
     }
 
     private static AgentUsageSummary toAgentSummary(Object[] row) {
-        AgentType agent = (AgentType) row[0];
+        AgentType agent = AgentType.valueOf((String) row[0]);
         long count = toLong(row[1]);
         long promptTokens = toLong(row[2]);
         long completionTokens = toLong(row[3]);
         BigDecimal costUsd = (BigDecimal) row[4];
-        Double avgLatencyRaw = (Double) row[5];
+        Number avgLatencyRaw = (Number) row[5];
         Long avgLatencyMs = avgLatencyRaw != null ? avgLatencyRaw.longValue() : null;
         return new AgentUsageSummary(agent, count, promptTokens, completionTokens, costUsd, avgLatencyMs);
     }

@@ -14,6 +14,9 @@ public interface CourseRepository extends JpaRepository<Course, UUID> {
     @Query("SELECT c FROM Course c WHERE c.isPublished = true ORDER BY c.createdAt ASC, c.id ASC")
     List<Course> findAllPublished(Pageable pageable);
 
+    @Query("SELECT c FROM Course c ORDER BY c.createdAt DESC, c.id ASC")
+    List<Course> findAllOrderByCreatedAtDesc();
+
     @Query("SELECT c FROM Course c WHERE c.isPublished = true "
             + "AND (c.createdAt > :afterTime OR (c.createdAt = :afterTime AND c.id > :afterId)) "
             + "ORDER BY c.createdAt ASC, c.id ASC")

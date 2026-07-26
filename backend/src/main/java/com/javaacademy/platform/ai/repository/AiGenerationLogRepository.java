@@ -12,53 +12,61 @@ public interface AiGenerationLogRepository extends JpaRepository<AiGenerationLog
 
     /** Total requests, tokens, and cost in the time window (inclusive). */
     @Query(
-            """
-            SELECT COUNT(log), COALESCE(SUM(log.promptTokens), 0),
-                   COALESCE(SUM(log.completionTokens), 0), SUM(log.costUsd)
-            FROM AiGenerationLog log
-            WHERE (:from IS NULL OR log.createdAt >= :from)
-              AND (:to   IS NULL OR log.createdAt <= :to)
-            """)
+            value =
+                    """
+                    SELECT COUNT(id), COALESCE(SUM(prompt_tokens), 0),
+                           COALESCE(SUM(completion_tokens), 0), SUM(cost_usd)
+                    FROM ai_generation_log
+                    WHERE (CAST(:from AS timestamptz) IS NULL OR created_at >= :from)
+                      AND (CAST(:to   AS timestamptz) IS NULL OR created_at <= :to)
+                    """,
+            nativeQuery = true)
     List<Object[]> findTotals(@Param("from") Instant from, @Param("to") Instant to);
 
     /** Per-agent breakdown: agent, count, promptTokens, completionTokens, cost, avgLatency. */
     @Query(
-            """
-            SELECT log.agent, COUNT(log), COALESCE(SUM(log.promptTokens), 0),
-                   COALESCE(SUM(log.completionTokens), 0), SUM(log.costUsd), AVG(log.latencyMs)
-            FROM AiGenerationLog log
-            WHERE (:from IS NULL OR log.createdAt >= :from)
-              AND (:to   IS NULL OR log.createdAt <= :to)
-            GROUP BY log.agent
-            ORDER BY SUM(log.costUsd) DESC NULLS LAST
-            """)
+            value =
+                    """
+                    SELECT agent, COUNT(id), COALESCE(SUM(prompt_tokens), 0),
+                           COALESCE(SUM(completion_tokens), 0), SUM(cost_usd), AVG(latency_ms)
+                    FROM ai_generation_log
+                    WHERE (CAST(:from AS timestamptz) IS NULL OR created_at >= :from)
+                      AND (CAST(:to   AS timestamptz) IS NULL OR created_at <= :to)
+                    GROUP BY agent
+                    ORDER BY SUM(cost_usd) DESC NULLS LAST
+                    """,
+            nativeQuery = true)
     List<Object[]> findByAgent(@Param("from") Instant from, @Param("to") Instant to);
 
     /** Per-user breakdown (only rows with a non-null userId): userId, email, count, cost. */
     @Query(
-            """
-            SELECT log.userId, u.email, COUNT(log), SUM(log.costUsd)
-            FROM AiGenerationLog log
-            JOIN User u ON u.id = log.userId
-            WHERE log.userId IS NOT NULL
-              AND (:from IS NULL OR log.createdAt >= :from)
-              AND (:to   IS NULL OR log.createdAt <= :to)
-            GROUP BY log.userId, u.email
-            ORDER BY SUM(log.costUsd) DESC NULLS LAST
-            """)
+            value =
+                    """
+                    SELECT l.user_id, u.email, COUNT(l.id), SUM(l.cost_usd)
+                    FROM ai_generation_log l
+                    JOIN users u ON u.id = l.user_id
+                    WHERE l.user_id IS NOT NULL
+                      AND (CAST(:from AS timestamptz) IS NULL OR l.created_at >= :from)
+                      AND (CAST(:to   AS timestamptz) IS NULL OR l.created_at <= :to)
+                    GROUP BY l.user_id, u.email
+                    ORDER BY SUM(l.cost_usd) DESC NULLS LAST
+                    """,
+            nativeQuery = true)
     List<Object[]> findByUser(@Param("from") Instant from, @Param("to") Instant to);
 
     /** Per-course breakdown (only rows with a non-null courseId): courseId, title, count, cost. */
     @Query(
-            """
-            SELECT log.courseId, c.title, COUNT(log), SUM(log.costUsd)
-            FROM AiGenerationLog log
-            JOIN Course c ON c.id = log.courseId
-            WHERE log.courseId IS NOT NULL
-              AND (:from IS NULL OR log.createdAt >= :from)
-              AND (:to   IS NULL OR log.createdAt <= :to)
-            GROUP BY log.courseId, c.title
-            ORDER BY SUM(log.costUsd) DESC NULLS LAST
-            """)
+            value =
+                    """
+                    SELECT l.course_id, c.title, COUNT(l.id), SUM(l.cost_usd)
+                    FROM ai_generation_log l
+                    JOIN courses c ON c.id = l.course_id
+                    WHERE l.course_id IS NOT NULL
+                      AND (CAST(:from AS timestamptz) IS NULL OR l.created_at >= :from)
+                      AND (CAST(:to   AS timestamptz) IS NULL OR l.created_at <= :to)
+                    GROUP BY l.course_id, c.title
+                    ORDER BY SUM(l.cost_usd) DESC NULLS LAST
+                    """,
+            nativeQuery = true)
     List<Object[]> findByCourse(@Param("from") Instant from, @Param("to") Instant to);
 }
