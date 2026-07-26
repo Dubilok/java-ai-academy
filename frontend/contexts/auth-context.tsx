@@ -14,6 +14,7 @@ import { clearTokens, getRefreshToken, setRefreshToken } from "@/lib/tokens";
 
 interface AuthUser {
   email: string;
+  role: string;
 }
 
 interface AuthContextValue {
@@ -36,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(parsed.accessToken);
     setRefreshToken(parsed.refreshToken);
     const payload = JSON.parse(atob(parsed.accessToken.split(".")[1] ?? ""));
-    setUser({ email: String(payload.sub) });
+    setUser({ email: String(payload.sub), role: String(payload.role ?? "") });
   }, []);
 
   useEffect(() => {

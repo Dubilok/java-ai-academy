@@ -9,6 +9,8 @@ const NAV_LINKS = [
   { href: "/interview", label: "Flashcards" },
 ];
 
+const ADMIN_NAV_LINK = { href: "/admin", label: "Admin" };
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
@@ -47,7 +49,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
           <nav aria-label="Main navigation">
             <ul className="flex items-center gap-6 text-sm">
-              {NAV_LINKS.map((link) => {
+              {[...NAV_LINKS, ...(user.role === "ROLE_ADMIN" ? [ADMIN_NAV_LINK] : [])].map((link) => {
                 const isCurrent = pathname === link.href || pathname.startsWith(link.href + "/");
                 return (
                   <li key={link.href}>
