@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
 import { AiHintPanel } from "@/components/ai-hint-panel";
+import { Markdown } from "@/components/markdown";
 import { VerdictPanel } from "@/components/verdict-panel";
 import { fetchTask, pollSubmission, submitCode } from "@/lib/queries/tasks";
 
@@ -105,9 +106,9 @@ export default function TaskWorkspacePage({ params }: { params: { taskId: string
             <span className="text-xs text-text-muted">+{task.xpReward} XP</span>
           </div>
           <h1 className="text-xl font-bold text-text-primary">{task.title}</h1>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-text-muted">
-            {task.description}
-          </p>
+          <div className="mt-3">
+            <Markdown content={task.description} className="prose-p:text-sm prose-li:text-sm" />
+          </div>
 
           <AiHintPanel taskId={params.taskId} hasFailed={result?.status === "FAILED"} />
         </section>
