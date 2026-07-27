@@ -33,54 +33,102 @@ export function VerdictPanel({
     }
   }, [status]);
 
-  const panelHeightClass = isOpen ? "h-48" : "h-10";
+  const isPassed = !isLoading && status === "PASSED";
+  const isFailed = !isLoading && status === "FAILED";
+
+  const barBg = isPassed
+    ? "bg-success/10 border-success/30"
+    : isFailed
+      ? "bg-error/10 border-error/30"
+      : "bg-bg-card border-white/10";
+
+  const panelHeightClass = isOpen ? "h-52" : "h-10";
 
   return (
-    <div
-      className={`flex flex-col border-t border-white/10 bg-bg-base transition-all ${panelHeightClass}`}
-    >
+    <div className={`flex flex-col border-t transition-all duration-200 ${panelHeightClass} ${barBg}`}>
+      {/* Status bar / toggle */}
       <button
         onClick={onToggle}
-        className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-text-muted hover:text-text-primary"
+        className="flex h-10 shrink-0 items-center gap-2.5 px-4 text-xs font-medium transition-colors hover:bg-white/5"
         aria-expanded={isOpen}
         aria-controls="terminal-output"
       >
-        <span>{isOpen ? "▾" : "▸"}</span>
-        <span>Terminal</span>
-        {!isLoading && status !== "PENDING" && (
-          <span
-            className={`ml-2 rounded-full px-2 py-0.5 font-semibold ${
-              status === "PASSED" ? "bg-success/20 text-success" : "bg-error/20 text-error"
-            }`}
-            aria-live="assertive"
-          >
-            {status}
-          </span>
-        )}
+        {/* Indicator dot */}
         {isLoading && (
-          <span className="ml-2 animate-pulse text-text-muted">running…</span>
+          <span className="h-2 w-2 animate-pulse rounded-full bg-accent-java" />
         )}
+        {isPassed && (
+          <svg className="h-3.5 w-3.5 text-success" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+        )}
+        {isFailed && (
+          <svg className="h-3.5 w-3.5 text-error" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        )}
+        {!isLoading && status === "PENDING" && (
+          <span className="h-2 w-2 rounded-full bg-white/30" />
+        )}
+
+        {/* Label */}
+        <span
+          className={
+            isPassed
+              ? "text-success"
+              : isFailed
+                ? "text-error"
+                : "text-text-muted"
+          }
+          aria-live="assertive"
+        >
+          {isLoading
+            ? "Running tests…"
+            : isPassed
+              ? "All tests passed"
+              : isFailed
+                ? "Tests failed"
+                : "Terminal"}
+        </span>
+
+        {/* Duration */}
         {durationMs !== null && !isLoading && (
-          <span className="ml-auto text-text-muted">{durationMs}ms</span>
+          <span className="text-text-muted">{durationMs} ms</span>
         )}
+
+        {/* Toggle chevron */}
+        <svg
+          className={`ml-auto h-3.5 w-3.5 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+        </svg>
       </button>
 
+      {/* Terminal content */}
       {isOpen && (
         <div
           id="terminal-output"
           role="log"
           aria-live="polite"
           aria-label="Test output"
-          className="flex-1 overflow-y-auto px-4 pb-4 font-mono text-xs"
+          className="flex-1 overflow-y-auto bg-[#0d1117] px-4 pb-4 pt-2 font-mono text-xs"
         >
-          {isLoading && <p className="text-text-muted">Running tests in sandbox…</p>}
-          {!isLoading && status !== "PENDING" && (
-            <pre
-              className={`whitespace-pre-wrap ${
-                status === "PASSED" ? "text-success" : "text-error"
-              }`}
-            >
-              {logs ?? (status === "PASSED" ? "All tests passed!" : "Tests failed.")}
+          {isLoading && (
+            <p className="text-text-muted">
+              <span className="text-accent-java">$</span> Running tests in sandbox…
+            </p>
+          )}
+          {isPassed && (
+            <pre className="whitespace-pre-wrap text-success">
+              {logs ?? "✓ All tests passed!"}
+            </pre>
+          )}
+          {isFailed && (
+            <pre className="whitespace-pre-wrap text-error">
+              {logs ?? "✗ Tests failed."}
             </pre>
           )}
         </div>
