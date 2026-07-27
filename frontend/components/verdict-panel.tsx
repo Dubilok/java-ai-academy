@@ -1,7 +1,153 @@
 "use client";
 
 import confetti from "canvas-confetti";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
+
+// ── JUnit parser ─────────────────────────────────────────────────────────────
+
+interface TestResult {
+  name: string;
+  passed: boolean;
+  error: string | null;
+}
+
+interface JUnitSummary {
+  results: TestResult[];
+  total: number;
+  passedCount: number;
+  failedCount: number;
+}
+
+function parseJUnit(raw: string): JUnitSummary | null {
+  // Strip sponsoring noise
+  const cleaned = raw.replace(/^Thanks for using JUnit!.*$/m, "").trim();
+
+  // 1. Extract leaf test results from the tree.
+  // Tree leaf lines look like: "   ├─ testAdd() ✔" or "   └─ testSubtract() ✘"
+  // We identify leaves by the presence of "(" in the name (methods, not classes).
+  const treePattern = /[├└]─\s+(.+?)\s*([✔✘])\s*$/;
+  const results: TestResult[] = [];
+  for (const line of cleaned.split("\n")) {
+    const match = treePattern.exec(line);
+    if (match) {
+      const name = (match[1] ?? "").trim();
+      if (name.includes("(")) {
+        results.push({ name, passed: (match[2] ?? "") === "✔", error: null });
+      }
+    }
+  }
+
+  // 2. Extract error messages from the Failures section.
+  // Each failure block looks like:
+  //   JUnit Jupiter:SolutionTest:testSubtract()
+  //     MethodSource [...]
+  //     => org.opentest4j.AssertionFailedError: expected: <5> but was: <0>
+  //         at SolutionTest...
+  const failuresBody = /Failures \(\d+\):([\s\S]*?)(?:\nTest run|\n\[\s+\d|\Z)/.exec(cleaned);
+  if (failuresBody) {
+    const blocks = (failuresBody[1] ?? "").split(/\n(?=\s{1,4}JUnit )/);
+    for (const block of blocks) {
+      // The first non-empty line is "  JUnit Jupiter:ClassName:testName()"
+      const blockLines = block.split("\n");
+      const headerMatch = /JUnit [^:]+:[^:]+:(.+?)\s*$/.exec(blockLines[0] ?? "");
+      if (!headerMatch) continue;
+      const testName = (headerMatch[1] ?? "").trim();
+
+      // Find the "=> ..." line and strip the Java exception class prefix
+      const arrowLine = blockLines.find((line) => /=>\s/.test(line));
+      let errorMsg: string | null = null;
+      if (arrowLine) {
+        const afterArrow = /=>\s+(.+)/.exec(arrowLine)?.[1] ?? "";
+        // Strip "org.opentest4j.AssertionFailedError: " and similar prefixes
+        errorMsg = afterArrow.replace(/^[\w.$]+(?:Error|Exception):\s*/i, "").trim() || afterArrow.trim();
+      }
+
+      const result = results.find((r) => r.name === testName);
+      if (result) result.error = errorMsg;
+    }
+  }
+
+  // 3. Parse stat lines "[  N tests found  ]"
+  const total =
+    parseInt(/\[\s+(\d+) tests? found\s+\]/.exec(cleaned)?.[1] ?? "0") || results.length;
+  const failedCount =
+    parseInt(/\[\s+(\d+) tests? failed\s+\]/.exec(cleaned)?.[1] ?? "0") ||
+    results.filter((r) => !r.passed).length;
+  const passedCount =
+    parseInt(/\[\s+(\d+) tests? successful\s+\]/.exec(cleaned)?.[1] ?? "0") ||
+    results.filter((r) => r.passed).length;
+
+  return { results, total, passedCount, failedCount };
+}
+
+// ── Terminal renderer ─────────────────────────────────────────────────────────
+
+function TerminalContent({ logs, isPassed }: { logs: string | null; isPassed: boolean }) {
+  if (!logs) {
+    return (
+      <p className={isPassed ? "text-success" : "text-error"}>
+        {isPassed ? "✔ All tests passed!" : "✗ Tests failed."}
+      </p>
+    );
+  }
+
+  const summary = parseJUnit(logs);
+
+  // If parsing extracted nothing useful, fall back to plain dump
+  if (!summary || summary.results.length === 0) {
+    return (
+      <pre className="whitespace-pre-wrap text-[#8b949e] leading-relaxed">{logs}</pre>
+    );
+  }
+
+  const { results, total, failedCount } = summary;
+  const failed = results.filter((r) => !r.passed);
+  const passed = results.filter((r) => r.passed);
+
+  return (
+    <div className="flex flex-col gap-3 py-1 font-sans">
+      {/* Summary line */}
+      <p className={`text-sm font-semibold ${failedCount > 0 ? "text-error" : "text-success"}`}>
+        {failedCount > 0
+          ? `${failedCount} of ${total} test${total !== 1 ? "s" : ""} failed`
+          : `All ${total} test${total !== 1 ? "s" : ""} passed`}
+      </p>
+
+      {/* Failed tests */}
+      {failed.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {failed.map((test, idx) => (
+            <div key={idx} className="rounded-lg border border-error/25 bg-error/8 px-3 py-2.5">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 shrink-0 text-sm text-error">✗</span>
+                <div className="min-w-0 flex-1">
+                  <code className="text-xs font-bold text-error">{test.name}</code>
+                  {test.error && (
+                    <p className="mt-1 text-xs leading-relaxed text-[#f59e0b]">{test.error}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Passed tests */}
+      {passed.length > 0 && (
+        <div className="flex flex-col gap-0.5">
+          {passed.map((test, idx) => (
+            <div key={idx} className="flex items-center gap-2 px-1 py-0.5">
+              <span className="text-xs text-success/50">✔</span>
+              <code className="text-xs text-white/30">{test.name}</code>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── VerdictPanel ──────────────────────────────────────────────────────────────
 
 type SubmissionStatus = "PENDING" | "PASSED" | "FAILED";
 
@@ -21,7 +167,7 @@ export function VerdictPanel({
   isOpen,
   isLoading,
   onToggle,
-}: VerdictPanelProps) {
+}: VerdictPanelProps): ReactNode {
   useEffect(() => {
     if (status === "PASSED") {
       confetti({
@@ -42,7 +188,7 @@ export function VerdictPanel({
       ? "bg-error/10 border-error/30"
       : "bg-bg-card border-white/10";
 
-  const panelHeightClass = isOpen ? "h-52" : "h-10";
+  const panelHeightClass = isOpen ? "h-64" : "h-10";
 
   return (
     <div className={`flex flex-col border-t transition-all duration-200 ${panelHeightClass} ${barBg}`}>
@@ -53,7 +199,6 @@ export function VerdictPanel({
         aria-expanded={isOpen}
         aria-controls="terminal-output"
       >
-        {/* Indicator dot */}
         {isLoading && (
           <span className="h-2 w-2 animate-pulse rounded-full bg-accent-java" />
         )}
@@ -71,15 +216,8 @@ export function VerdictPanel({
           <span className="h-2 w-2 rounded-full bg-white/30" />
         )}
 
-        {/* Label */}
         <span
-          className={
-            isPassed
-              ? "text-success"
-              : isFailed
-                ? "text-error"
-                : "text-text-muted"
-          }
+          className={isPassed ? "text-success" : isFailed ? "text-error" : "text-text-muted"}
           aria-live="assertive"
         >
           {isLoading
@@ -91,12 +229,10 @@ export function VerdictPanel({
                 : "Terminal"}
         </span>
 
-        {/* Duration */}
         {durationMs !== null && !isLoading && (
           <span className="text-text-muted">{durationMs} ms</span>
         )}
 
-        {/* Toggle chevron */}
         <svg
           className={`ml-auto h-3.5 w-3.5 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
           viewBox="0 0 20 20"
@@ -107,29 +243,22 @@ export function VerdictPanel({
         </svg>
       </button>
 
-      {/* Terminal content */}
+      {/* Content */}
       {isOpen && (
         <div
           id="terminal-output"
           role="log"
           aria-live="polite"
           aria-label="Test output"
-          className="flex-1 overflow-y-auto bg-[#0d1117] px-4 pb-4 pt-2 font-mono text-xs"
+          className="flex-1 overflow-y-auto bg-[#0d1117] px-4 pb-4 pt-3"
         >
           {isLoading && (
-            <p className="text-text-muted">
+            <p className="font-mono text-xs text-text-muted">
               <span className="text-accent-java">$</span> Running tests in sandbox…
             </p>
           )}
-          {isPassed && (
-            <pre className="whitespace-pre-wrap text-success">
-              {logs ?? "✓ All tests passed!"}
-            </pre>
-          )}
-          {isFailed && (
-            <pre className="whitespace-pre-wrap text-error">
-              {logs ?? "✗ Tests failed."}
-            </pre>
+          {(isPassed || isFailed) && (
+            <TerminalContent logs={logs} isPassed={isPassed} />
           )}
         </div>
       )}
