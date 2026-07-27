@@ -174,16 +174,22 @@ public final class MockInterviewerService {
                 sb.append("Q").append(answerNumber).append(": ");
                 if (answer.getQuestion() != null) {
                     sb.append(answer.getQuestion().getQuestion());
+                } else if (answer.getVoiceQuestion() != null) {
+                    sb.append(answer.getVoiceQuestion().getQuestion());
                 } else {
                     sb.append("(question no longer available)");
                 }
                 sb.append("\n");
                 sb.append("A").append(answerNumber).append(": ");
                 @Nullable String answerText = answer.getAnswerText();
-                if (answerText == null || answerText.isBlank()) {
+                @Nullable String transcript = answer.getTranscript();
+                String responseText = answerText != null && !answerText.isBlank()
+                        ? answerText
+                        : (transcript != null && !transcript.isBlank() ? transcript : null);
+                if (responseText == null) {
                     sb.append("(no answer provided)");
                 } else {
-                    sb.append(truncate(answerText, MAX_ANSWER_CHARS));
+                    sb.append(truncate(responseText, MAX_ANSWER_CHARS));
                 }
                 sb.append("\n\n");
                 answerNumber++;

@@ -21,10 +21,12 @@ import com.javaacademy.platform.interview.dto.StartSessionRequest;
 import com.javaacademy.platform.interview.dto.StartSessionResponse;
 import com.javaacademy.platform.interview.dto.SubmitAnswerRequest;
 import com.javaacademy.platform.interview.dto.SubmitAnswerResponse;
+import com.javaacademy.platform.interview.dto.TurnResult;
 import com.javaacademy.platform.interview.entity.InterviewAnswer;
 import com.javaacademy.platform.interview.entity.InterviewQuestion;
 import com.javaacademy.platform.interview.entity.InterviewSession;
 import com.javaacademy.platform.interview.enums.InterviewDifficulty;
+import com.javaacademy.platform.interview.enums.InterviewMode;
 import com.javaacademy.platform.interview.enums.InterviewSessionStatus;
 import com.javaacademy.platform.interview.repository.InterviewAnswerRepository;
 import com.javaacademy.platform.interview.repository.InterviewQuestionRepository;
@@ -53,6 +55,7 @@ class InterviewSessionServiceTest {
     InterviewAnswerRepository answerRepository;
     UserRepository userRepository;
     MockInterviewerService mockInterviewerService;
+    VoiceInterviewOrchestrator voiceOrchestrator;
     InterviewSessionService service;
 
     User mockUser;
@@ -66,6 +69,7 @@ class InterviewSessionServiceTest {
         answerRepository = mock(InterviewAnswerRepository.class);
         userRepository = mock(UserRepository.class);
         mockInterviewerService = mock(MockInterviewerService.class);
+        voiceOrchestrator = mock(VoiceInterviewOrchestrator.class);
         Clock fixedClock = Clock.fixed(Instant.parse("2026-07-25T10:00:00Z"), ZoneOffset.UTC);
 
         service = new InterviewSessionService(
@@ -74,6 +78,7 @@ class InterviewSessionServiceTest {
                 answerRepository,
                 userRepository,
                 mockInterviewerService,
+                voiceOrchestrator,
                 new ObjectMapper().registerModule(new JavaTimeModule()),
                 fixedClock);
 
@@ -137,6 +142,34 @@ class InterviewSessionServiceTest {
                 .isInstanceOf(ApiException.class)
                 .extracting("status")
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void startSession_voiceMode_callsOrchestratorAndReturnsFirstVoiceQuestion() {
+        TurnResult openingTurn =
+                new TurnResult("Can you explain what the JVM does?", java.util.Map.of("jvm", false), null, false);
+        when(voiceOrchestrator.generateOpeningQuestion(any(), any(Integer.class)))
+                .thenReturn(openingTurn);
+
+        StartSessionResponse response =
+                service.startSession(new StartSessionRequest(TECHNOLOGY, InterviewMode.VOICE, 5), USER_EMAIL);
+
+        assertThat(response.sessionId()).isEqualTo(SESSION_ID);
+        assertThat(response.mode()).isEqualTo(InterviewMode.VOICE);
+        assertThat(response.firstVoiceQuestion()).isEqualTo("Can you explain what the JVM does?");
+        assertThat(response.firstQuestion()).isNull();
+        verify(voiceOrchestrator).generateOpeningQuestion(any(InterviewSession.class), any(Integer.class));
+    }
+
+    @Test
+    void startSession_voiceMode_doesNotQueryQuestionRepository() {
+        TurnResult openingTurn = new TurnResult("What is a lambda?", java.util.Map.of("lambdas", false), null, false);
+        when(voiceOrchestrator.generateOpeningQuestion(any(), any(Integer.class)))
+                .thenReturn(openingTurn);
+
+        service.startSession(new StartSessionRequest(TECHNOLOGY, InterviewMode.VOICE, null), USER_EMAIL);
+
+        verify(questionRepository, org.mockito.Mockito.never()).findByTechnology(any());
     }
 
     // ── submitAnswer ───────────────────────────────────────────────────────────

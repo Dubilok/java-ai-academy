@@ -47,13 +47,22 @@ public class InterviewSessionService {
     private final InterviewAnswerRepository answerRepository;
     private final UserRepository userRepository;
     private final MockInterviewerService mockInterviewerService;
+    private final VoiceInterviewOrchestrator voiceOrchestrator;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
     @Transactional
     public StartSessionResponse startSession(StartSessionRequest request, String userEmail) {
         User user = requireUser(userEmail);
+        InterviewMode mode = request.mode() != null ? request.mode() : InterviewMode.TEXT;
 
+        if (mode == InterviewMode.VOICE) {
+            return startVoiceSession(request, user, mode);
+        }
+        return startTextSession(request, user, mode);
+    }
+
+    private StartSessionResponse startTextSession(StartSessionRequest request, User user, InterviewMode mode) {
         List<InterviewQuestion> available = questionRepository.findByTechnology(request.technology());
         if (available.isEmpty()) {
             throw new ApiException(
@@ -67,7 +76,7 @@ public class InterviewSessionService {
         session.setUser(user);
         session.setTechnology(request.technology());
         session.setStatus(InterviewSessionStatus.ACTIVE);
-        session.setMode(request.mode() != null ? request.mode() : InterviewMode.TEXT);
+        session.setMode(mode);
         if (request.maxTurns() != null) {
             session.setMaxTurns(request.maxTurns());
         }
@@ -76,7 +85,7 @@ public class InterviewSessionService {
         InterviewSession saved = sessionRepository.save(session);
 
         log.info(
-                "Started interview session {} for user {} technology={}",
+                "Started TEXT interview session {} for user {} technology={}",
                 saved.getId(),
                 user.getId(),
                 request.technology());
@@ -84,9 +93,34 @@ public class InterviewSessionService {
                 saved.getId(),
                 saved.getTechnology(),
                 saved.getStatus(),
-                saved.getMode(),
+                mode,
                 toQuestionInSession(firstQuestion),
                 null);
+    }
+
+    private StartSessionResponse startVoiceSession(StartSessionRequest request, User user, InterviewMode mode) {
+        int maxTurns = request.maxTurns() != null ? request.maxTurns() : 5;
+
+        InterviewSession session = new InterviewSession();
+        session.setUser(user);
+        session.setTechnology(request.technology());
+        session.setStatus(InterviewSessionStatus.ACTIVE);
+        session.setMode(mode);
+        session.setMaxTurns(maxTurns);
+        session.setCreatedAt(Instant.now(clock));
+        InterviewSession saved = sessionRepository.save(session);
+
+        com.javaacademy.platform.interview.dto.TurnResult openingTurn =
+                voiceOrchestrator.generateOpeningQuestion(saved, maxTurns);
+
+        log.info(
+                "Started VOICE interview session {} for user {} technology={} maxTurns={}",
+                saved.getId(),
+                user.getId(),
+                request.technology(),
+                maxTurns);
+        return new StartSessionResponse(
+                saved.getId(), saved.getTechnology(), saved.getStatus(), mode, null, openingTurn.question());
     }
 
     @Transactional
@@ -160,7 +194,9 @@ public class InterviewSessionService {
             throw new ApiException(HttpStatus.CONFLICT, "Session " + sessionId + " is already finished");
         }
 
-        List<InterviewAnswer> answers = answerRepository.findBySessionIdWithQuestionOrderByCreatedAt(sessionId);
+        List<InterviewAnswer> answers = session.getMode() == InterviewMode.VOICE
+                ? answerRepository.findBySessionIdWithVoiceQuestionOrderByCreatedAt(sessionId)
+                : answerRepository.findBySessionIdWithQuestionOrderByCreatedAt(sessionId);
 
         EvaluationReport report = mockInterviewerService.evaluate(answers, sessionId, session.getTechnology());
 
