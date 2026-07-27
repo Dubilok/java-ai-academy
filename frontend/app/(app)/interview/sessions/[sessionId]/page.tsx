@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { fetchSession, submitAnswer, finishSession } from "@/lib/queries/interview";
 import type { QuestionInSession, EvaluationReport, EvaluationDimension } from "@/lib/schemas/interview";
 
