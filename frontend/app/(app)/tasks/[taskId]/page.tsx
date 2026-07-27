@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useCallback, useState } from "react";
 import { AiHintPanel } from "@/components/ai-hint-panel";
 import { Markdown } from "@/components/markdown";
@@ -98,6 +99,27 @@ export default function TaskWorkspacePage({ params }: { params: { taskId: string
           className="w-2/5 overflow-y-auto border-r border-white/10 p-6"
           aria-label="Task description"
         >
+          <div className="mb-3">
+            <Link
+              href={`/courses/${task.courseId}`}
+              className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-accent-blue transition-colors"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3.5 w-3.5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Back to course
+            </Link>
+          </div>
           <div className="mb-4 flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-text-muted">
               {DIFFICULTY_LABEL[task.difficulty] ?? task.difficulty}

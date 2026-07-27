@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const TaskDetailSchema = z.object({
   id: z.string().uuid(),
+  courseId: z.string().uuid(),
   title: z.string(),
   description: z.string(),
   difficulty: z.enum(["EASY", "MEDIUM", "HARD"]),
