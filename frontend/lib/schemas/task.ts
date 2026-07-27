@@ -11,6 +11,7 @@ export const TaskDetailSchema = z.object({
 
 export const LectureDetailSchema = z.object({
   id: z.string().uuid(),
+  courseId: z.string().uuid(),
   title: z.string(),
   contentMarkdown: z.string(),
   orderIndex: z.number().int(),

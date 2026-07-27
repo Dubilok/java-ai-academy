@@ -40,13 +40,18 @@ public class CatalogMapper {
         return new ModuleResponse(module.getId(), module.getTitle(), module.getOrderIndex(), lectureStubs);
     }
 
-    public LectureStubResponse toLectureStubResponse(Lecture lecture) {
-        return new LectureStubResponse(lecture.getId(), lecture.getTitle(), lecture.getOrderIndex());
+    public LectureStubResponse toLectureStubResponse(Lecture lecture, List<TaskStubResponse> taskStubs) {
+        return new LectureStubResponse(lecture.getId(), lecture.getTitle(), lecture.getOrderIndex(), taskStubs);
     }
 
     public LectureResponse toLectureResponse(Lecture lecture, List<TaskStubResponse> taskStubs) {
         return new LectureResponse(
-                lecture.getId(), lecture.getTitle(), lecture.getContentMarkdown(), lecture.getOrderIndex(), taskStubs);
+                lecture.getId(),
+                lecture.getModule().getCourse().getId(),
+                lecture.getTitle(),
+                lecture.getContentMarkdown(),
+                lecture.getOrderIndex(),
+                taskStubs);
     }
 
     public TaskStubResponse toTaskStubResponse(Task task) {
