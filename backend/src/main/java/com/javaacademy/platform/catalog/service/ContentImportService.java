@@ -73,6 +73,25 @@ public class ContentImportService {
         return new ImportResult(module.getCourse().getId(), lecture.getId());
     }
 
+    /**
+     * Creates a lecture + first task at an explicit order index.
+     * Use this in parallel generation to avoid the race on findMaxOrderIndex + insert.
+     */
+    @Transactional
+    public ImportResult importLectureAndTaskAtIndex(UUID moduleId, GeneratedContent content, int lectureOrderIndex) {
+        CourseModule module = moduleRepository
+                .findById(moduleId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Module not found: " + moduleId));
+        Lecture lecture = new Lecture();
+        lecture.setModule(module);
+        lecture.setTitle(content.lecture().title());
+        lecture.setContentMarkdown(content.lecture().contentMarkdown());
+        lecture.setOrderIndex(lectureOrderIndex);
+        Lecture savedLecture = lectureRepository.save(lecture);
+        saveTask(savedLecture, content);
+        return new ImportResult(module.getCourse().getId(), savedLecture.getId());
+    }
+
     /** Adds an extra task to an existing lecture (used for taskCount > 1). */
     @Transactional
     public void importAdditionalTask(UUID lectureId, GeneratedContent content) {

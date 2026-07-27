@@ -105,9 +105,17 @@ public class ContentArchitectService {
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             String prompt = attempt == 1 ? userPrompt : buildSelfHealingPrompt(attempt, userPrompt, lastError);
+            String model = attempt == 1
+                    ? anthropicProperties.effectiveGenerationModel()
+                    : anthropicProperties.effectiveHealingModel();
 
-            log.info("Content generation attempt {}/{} for '{}'", attempt, MAX_ATTEMPTS, technology);
-            ParseResult parseResult = callAndParse(prompt, attempt, startMs, totalPromptTokens, totalCompletionTokens);
+            log.info(
+                    "Content generation attempt {}/{} for '{}' using model '{}'",
+                    attempt,
+                    MAX_ATTEMPTS,
+                    technology,
+                    model);
+            ParseResult parseResult = callAndParse(prompt, model, attempt, startMs, totalPromptTokens, totalCompletionTokens);
             totalPromptTokens = parseResult.totalPromptTokens;
             totalCompletionTokens = parseResult.totalCompletionTokens;
 
@@ -137,11 +145,12 @@ public class ContentArchitectService {
 
     private ParseResult callAndParse(
             String userPrompt,
+            String model,
             int attempt,
             long startMs,
             int accumulatedPromptTokens,
             int accumulatedCompletionTokens) {
-        LlmRequest request = new LlmRequest(null, systemPrompt, userPrompt, 8192);
+        LlmRequest request = new LlmRequest(model, systemPrompt, userPrompt, 8192);
         LlmResponse response = llmClient.complete(request);
         int newPromptTokens = accumulatedPromptTokens + response.promptTokens();
         int newCompletionTokens = accumulatedCompletionTokens + response.completionTokens();

@@ -4,6 +4,7 @@ import {
   AdminModuleSchema,
   AiUsageResponseSchema,
   CurriculumProposalSchema,
+  ImportContentResponseSchema,
   JobStatusSchema,
   ProposeLecturesResponseSchema,
   ProposeModulesResponseSchema,
@@ -11,6 +12,7 @@ import {
   type AdminModule,
   type AiUsageResponse,
   type CurriculumProposal,
+  type ImportContentResponse,
   type JobStatus,
   type ModuleProposal,
 } from "@/lib/schemas/admin";
@@ -119,4 +121,9 @@ export async function createFlashcard(payload: {
 
 export async function deleteFlashcard(id: string): Promise<void> {
   await api.delete(`/admin/interview/questions/${id}`);
+}
+
+export async function importContent(moduleId: string, rawJson: string): Promise<ImportContentResponse> {
+  const response = await api.post("/admin/content/import", { moduleId, rawJson });
+  return ImportContentResponseSchema.parse(response.data);
 }

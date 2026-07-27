@@ -6,11 +6,14 @@ import com.javaacademy.platform.ai.dto.CurriculumProposalResponse;
 import com.javaacademy.platform.ai.dto.EvaluationSummary;
 import com.javaacademy.platform.ai.dto.GenerateCourseRequest;
 import com.javaacademy.platform.ai.dto.GenerationJobResponse;
+import com.javaacademy.platform.ai.dto.ImportContentRequest;
+import com.javaacademy.platform.ai.dto.ImportContentResponse;
 import com.javaacademy.platform.ai.dto.ProposeLecturesRequest;
 import com.javaacademy.platform.ai.dto.ProposeLecturesResponse;
 import com.javaacademy.platform.ai.dto.ProposeModulesRequest;
 import com.javaacademy.platform.ai.dto.ProposeModulesResponse;
 import com.javaacademy.platform.ai.enums.JobStatus;
+import com.javaacademy.platform.ai.service.ContentImportEndpointService;
 import com.javaacademy.platform.ai.service.CurriculumArchitectService;
 import com.javaacademy.platform.ai.service.EvaluationDashboardService;
 import com.javaacademy.platform.ai.service.FinOpsService;
@@ -42,6 +45,7 @@ public class AdminAiController {
 
     private final GenerationJobService generationJobService;
     private final CurriculumArchitectService curriculumArchitectService;
+    private final ContentImportEndpointService contentImportEndpointService;
     private final FinOpsService finOpsService;
     private final EvaluationDashboardService evaluationDashboardService;
     private final CatalogService catalogService;
@@ -94,6 +98,15 @@ public class AdminAiController {
     @GetMapping("/ai/evaluations")
     public List<EvaluationSummary> getEvaluations(@RequestParam(required = false) @Nullable String targetType) {
         return evaluationDashboardService.getRecentEvaluations(targetType);
+    }
+
+    /**
+     * Imports externally authored content (e.g. from Claude.ai chat) into an existing module.
+     * Runs ContentParser validation + sandbox verification — no LLM API call is made.
+     */
+    @PostMapping("/content/import")
+    public ImportContentResponse importContent(@Valid @RequestBody ImportContentRequest request) {
+        return contentImportEndpointService.importFromJson(request.moduleId(), request.rawJson());
     }
 
     /** Lists all courses (published and unpublished) for the admin content picker. */

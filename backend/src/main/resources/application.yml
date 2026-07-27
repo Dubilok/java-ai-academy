@@ -39,6 +39,8 @@ app:
       base-url: https://api.anthropic.com
       api-version: "2023-06-01"
       default-model: ${ANTHROPIC_MODEL:claude-sonnet-4-6}
+      generation-model: ${ANTHROPIC_GENERATION_MODEL:claude-haiku-4-5-20251001}   # cheap first-pass
+      healing-model: ${ANTHROPIC_HEALING_MODEL:claude-sonnet-4-6}                 # quality retries
       max-retries: 3
       retry-initial-delay-ms: 1000
       input-cost-per-million-tokens: ${ANTHROPIC_INPUT_COST_PER_MILLION:3.00}

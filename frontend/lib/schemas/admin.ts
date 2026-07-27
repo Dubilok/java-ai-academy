@@ -68,6 +68,11 @@ export const ProposeLecturesResponseSchema = z.object({
 
 // ── Job status (from GET /admin/ai/jobs/{id}) ─────────────────────────────────
 
+export const ImportContentResponseSchema = z.object({
+  courseId: z.string().uuid(),
+  lectureId: z.string().uuid(),
+});
+
 export const JobStatusSchema = z.object({
   jobId: z.string(),
   status: z.enum(["RUNNING", "SUCCEEDED", "FAILED"]),
@@ -81,6 +86,7 @@ export const JobStatusSchema = z.object({
 
 export type AgentUsageSummary = z.infer<typeof AgentUsageSummarySchema>;
 export type CourseUsageSummary = z.infer<typeof CourseUsageSummarySchema>;
+export type ImportContentResponse = z.infer<typeof ImportContentResponseSchema>;
 export type AiUsageResponse = z.infer<typeof AiUsageResponseSchema>;
 export type AdminCourse = z.infer<typeof AdminCourseSchema>;
 export type AdminModule = z.infer<typeof AdminModuleSchema>;
