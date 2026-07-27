@@ -18,6 +18,7 @@ import com.javaacademy.platform.interview.entity.InterviewAnswer;
 import com.javaacademy.platform.interview.entity.InterviewQuestion;
 import com.javaacademy.platform.interview.entity.InterviewSession;
 import com.javaacademy.platform.interview.enums.InterviewDifficulty;
+import com.javaacademy.platform.interview.enums.InterviewMode;
 import com.javaacademy.platform.interview.enums.InterviewSessionStatus;
 import com.javaacademy.platform.interview.repository.InterviewAnswerRepository;
 import com.javaacademy.platform.interview.repository.InterviewQuestionRepository;
@@ -66,6 +67,10 @@ public class InterviewSessionService {
         session.setUser(user);
         session.setTechnology(request.technology());
         session.setStatus(InterviewSessionStatus.ACTIVE);
+        session.setMode(request.mode() != null ? request.mode() : InterviewMode.TEXT);
+        if (request.maxTurns() != null) {
+            session.setMaxTurns(request.maxTurns());
+        }
         session.setCurrentQuestion(firstQuestion);
         session.setCreatedAt(Instant.now(clock));
         InterviewSession saved = sessionRepository.save(session);
@@ -76,7 +81,12 @@ public class InterviewSessionService {
                 user.getId(),
                 request.technology());
         return new StartSessionResponse(
-                saved.getId(), saved.getTechnology(), saved.getStatus(), toQuestionInSession(firstQuestion));
+                saved.getId(),
+                saved.getTechnology(),
+                saved.getStatus(),
+                saved.getMode(),
+                toQuestionInSession(firstQuestion),
+                null);
     }
 
     @Transactional

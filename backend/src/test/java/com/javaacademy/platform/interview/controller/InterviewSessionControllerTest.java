@@ -23,6 +23,7 @@ import com.javaacademy.platform.interview.dto.StartSessionResponse;
 import com.javaacademy.platform.interview.dto.SubmitAnswerRequest;
 import com.javaacademy.platform.interview.dto.SubmitAnswerResponse;
 import com.javaacademy.platform.interview.enums.InterviewDifficulty;
+import com.javaacademy.platform.interview.enums.InterviewMode;
 import com.javaacademy.platform.interview.enums.InterviewSessionStatus;
 import com.javaacademy.platform.interview.service.InterviewSessionService;
 import java.time.Instant;
@@ -64,7 +65,7 @@ class InterviewSessionControllerTest {
     void startSession_unauthenticated_returns401() throws Exception {
         mockMvc.perform(post("/api/v1/interview/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new StartSessionRequest("Java"))))
+                        .content(objectMapper.writeValueAsString(new StartSessionRequest("Java", null, null))))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -73,13 +74,13 @@ class InterviewSessionControllerTest {
     void startSession_validRequest_returns201WithFirstQuestion() throws Exception {
         QuestionInSession firstQuestion =
                 new QuestionInSession(QUESTION_ID, "What is the JVM?", "Core", InterviewDifficulty.BEGINNER);
-        StartSessionResponse response =
-                new StartSessionResponse(SESSION_ID, "Java", InterviewSessionStatus.ACTIVE, firstQuestion);
+        StartSessionResponse response = new StartSessionResponse(
+                SESSION_ID, "Java", InterviewSessionStatus.ACTIVE, InterviewMode.TEXT, firstQuestion, null);
         when(sessionService.startSession(any(), any())).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/interview/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new StartSessionRequest("Java"))))
+                        .content(objectMapper.writeValueAsString(new StartSessionRequest("Java", null, null))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.sessionId").value(SESSION_ID.toString()))
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
@@ -91,7 +92,7 @@ class InterviewSessionControllerTest {
     void startSession_blankTechnology_returns400() throws Exception {
         mockMvc.perform(post("/api/v1/interview/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new StartSessionRequest(""))))
+                        .content(objectMapper.writeValueAsString(new StartSessionRequest("", null, null))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -103,7 +104,7 @@ class InterviewSessionControllerTest {
 
         mockMvc.perform(post("/api/v1/interview/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new StartSessionRequest("Cobol"))))
+                        .content(objectMapper.writeValueAsString(new StartSessionRequest("Cobol", null, null))))
                 .andExpect(status().isUnprocessableEntity());
     }
 

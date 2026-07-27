@@ -100,7 +100,8 @@ class InterviewSessionServiceTest {
     void startSession_withAvailableQuestions_returnsSessionWithFirstQuestion() {
         when(questionRepository.findByTechnology(TECHNOLOGY)).thenReturn(List.of(question1));
 
-        StartSessionResponse response = service.startSession(new StartSessionRequest(TECHNOLOGY), USER_EMAIL);
+        StartSessionResponse response =
+                service.startSession(new StartSessionRequest(TECHNOLOGY, null, null), USER_EMAIL);
 
         assertThat(response.sessionId()).isEqualTo(SESSION_ID);
         assertThat(response.technology()).isEqualTo(TECHNOLOGY);
@@ -113,7 +114,7 @@ class InterviewSessionServiceTest {
     void startSession_persistsSession() {
         when(questionRepository.findByTechnology(TECHNOLOGY)).thenReturn(List.of(question1));
 
-        service.startSession(new StartSessionRequest(TECHNOLOGY), USER_EMAIL);
+        service.startSession(new StartSessionRequest(TECHNOLOGY, null, null), USER_EMAIL);
 
         verify(sessionRepository).save(any(InterviewSession.class));
     }
@@ -122,7 +123,7 @@ class InterviewSessionServiceTest {
     void startSession_noQuestionsForTechnology_throws422() {
         when(questionRepository.findByTechnology("Cobol")).thenReturn(List.of());
 
-        assertThatThrownBy(() -> service.startSession(new StartSessionRequest("Cobol"), USER_EMAIL))
+        assertThatThrownBy(() -> service.startSession(new StartSessionRequest("Cobol", null, null), USER_EMAIL))
                 .isInstanceOf(ApiException.class)
                 .extracting("status")
                 .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
@@ -132,7 +133,7 @@ class InterviewSessionServiceTest {
     void startSession_unknownUser_throws401() {
         when(userRepository.findByEmail(USER_EMAIL)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.startSession(new StartSessionRequest(TECHNOLOGY), USER_EMAIL))
+        assertThatThrownBy(() -> service.startSession(new StartSessionRequest(TECHNOLOGY, null, null), USER_EMAIL))
                 .isInstanceOf(ApiException.class)
                 .extracting("status")
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
