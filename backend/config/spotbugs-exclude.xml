@@ -58,5 +58,13 @@
         <Class name="com.javaacademy.platform.interview.service.FlashcardGeneratorService"/>
         <Bug pattern="CT_CONSTRUCTOR_THROW"/>
     </Match>
+    <Match>
+        <Class name="com.javaacademy.platform.interview.service.MockInterviewerService"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+    <Match>
+        <Class name="com.javaacademy.platform.interview.service.VoiceInterviewOrchestrator"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
 
 </FindBugsFilter>

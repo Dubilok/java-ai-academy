@@ -18,4 +18,8 @@ public interface InterviewAnswerRepository extends JpaRepository<InterviewAnswer
     @Query(
             "SELECT a FROM InterviewAnswer a JOIN FETCH a.question WHERE a.session.id = :sessionId ORDER BY a.createdAt ASC")
     List<InterviewAnswer> findBySessionIdWithQuestionOrderByCreatedAt(@Param("sessionId") UUID sessionId);
+
+    @Query(
+            "SELECT a FROM InterviewAnswer a LEFT JOIN FETCH a.voiceQuestion WHERE a.session.id = :sessionId ORDER BY a.createdAt ASC")
+    List<InterviewAnswer> findBySessionIdWithVoiceQuestionOrderByCreatedAt(@Param("sessionId") UUID sessionId);
 }
