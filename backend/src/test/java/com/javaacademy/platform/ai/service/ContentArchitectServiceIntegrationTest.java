@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 class ContentArchitectServiceIntegrationTest {
 
     static final AnthropicProperties TEST_PROPS = new AnthropicProperties(
-            "key", "https://api.anthropic.com", "2023-06-01", "claude-test", 3, 1000L, 3.0, 15.0);
+            "key", "https://api.anthropic.com", "2023-06-01", "claude-test", null, null, 3, 1000L, 3.0, 15.0);
 
     /** Recorded/golden LLM response matching the GeneratedContent JSON schema. */
     static final String RECORDED_LLM_RESPONSE =

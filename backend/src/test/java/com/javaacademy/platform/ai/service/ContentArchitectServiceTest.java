@@ -31,7 +31,19 @@ import org.junit.jupiter.api.Test;
 class ContentArchitectServiceTest {
 
     static final AnthropicProperties TEST_PROPS = new AnthropicProperties(
-            "key", "https://api.anthropic.com", "2023-06-01", "claude-test", 3, 1000L, 3.0, 15.0);
+            "key", "https://api.anthropic.com", "2023-06-01", "claude-test", null, null, 3, 1000L, 3.0, 15.0);
+
+    static final AnthropicProperties TIER_PROPS = new AnthropicProperties(
+            "key",
+            "https://api.anthropic.com",
+            "2023-06-01",
+            "default-model",
+            "haiku-model",
+            "sonnet-model",
+            3,
+            1000L,
+            1.0,
+            5.0);
 
     LlmClient llmClient;
     ContentParser contentParser;
@@ -200,6 +212,51 @@ class ContentArchitectServiceTest {
         assertThatThrownBy(() -> service.generateForTopic("Java Records")).isInstanceOf(LlmException.class);
 
         verify(llmClient, times(3)).complete(any());
+    }
+
+    // ── model-tier selection ───────────────────────────────────────────────────
+
+    @Test
+    void generateForTopic_firstAttempt_usesGenerationModel() {
+        ContentArchitectService tieredService = new ContentArchitectService(
+                llmClient,
+                contentParser,
+                executionEngine,
+                generationLogRepository,
+                TIER_PROPS,
+                metrics,
+                Clock.systemUTC(),
+                "test-prompt");
+        when(llmClient.complete(any())).thenReturn(new LlmResponse("{}", 10, 200));
+        when(contentParser.parse(any())).thenReturn(sampleContent());
+        when(executionEngine.execute(any())).thenReturn(ExecutionResult.passed("OK", 100L));
+
+        tieredService.generateForTopic("Java Records");
+
+        verify(llmClient).complete(argThat(request -> "haiku-model".equals(request.model())));
+    }
+
+    @Test
+    void generateForTopic_onRetry_usesHealingModel() {
+        ContentArchitectService tieredService = new ContentArchitectService(
+                llmClient,
+                contentParser,
+                executionEngine,
+                generationLogRepository,
+                TIER_PROPS,
+                metrics,
+                Clock.systemUTC(),
+                "test-prompt");
+        when(llmClient.complete(any())).thenReturn(new LlmResponse("{}", 10, 200));
+        when(contentParser.parse(any())).thenReturn(sampleContent());
+        when(executionEngine.execute(any()))
+                .thenReturn(ExecutionResult.failed(1, "test output error", 300L))
+                .thenReturn(ExecutionResult.passed("OK", 200L));
+
+        tieredService.generateForTopic("Java Records");
+
+        // Second call must use the healing model
+        verify(llmClient).complete(argThat(request -> "sonnet-model".equals(request.model())));
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────

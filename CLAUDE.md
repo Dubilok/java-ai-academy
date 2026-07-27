@@ -4,7 +4,7 @@
 > It is Claude's persistent memory across sessions. Read it fully before doing any work.
 > Every completed task, decision, and blocker is recorded here — not in chat history.
 
-**Status:** E10 complete + post-E10 admin tooling in progress · **Last updated:** 2026-07-27 · **Doc version:** 1.0
+**Status:** E11 complete · **Last updated:** 2026-07-27 · **Doc version:** 1.0
 
 ---
 
@@ -598,9 +598,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E10-T6 Backup/restore runbook + `docs/RUNBOOK.md`
 
 ### E11 — Content authoring & cost optimisation
-- [ ] E11-T1 `POST /admin/content/import` — accept same JSON schema as Content Architect output; runs `ContentParser` validation + sandbox verification; persists only on pass; no LLM call = zero API cost
-- [ ] E11-T2 "Import from JSON" UI panel in admin — paste-box + import button + field-level validation error display
-- [ ] E11-T3 Model-tier selector per agent: `claude-haiku-4-5` for first-pass generation, Sonnet only for self-healing retries; `app.llm.anthropic.generationModel` + `app.llm.anthropic.healingModel` config; ~10× cost reduction for bulk generation
+- [x] E11-T1 `POST /admin/content/import` — accept same JSON schema as Content Architect output; runs `ContentParser` validation + sandbox verification; persists only on pass; no LLM call = zero API cost
+- [x] E11-T2 "Import from JSON" UI panel in admin — paste-box + import button + field-level validation error display
+- [x] E11-T3 Model-tier selector per agent: `claude-haiku-4-5` for first-pass generation, Sonnet only for self-healing retries; `app.llm.anthropic.generationModel` + `app.llm.anthropic.healingModel` config; ~10× cost reduction for bulk generation
 
 ---
 
@@ -780,6 +780,9 @@ cd ide-plugin
 | 2026-07-27 | admin | ✅ | Per-job cost tracking: `AiGenerationLogRepository.findByCourse` returns 6 cols (added `SUM(prompt_tokens)`, `SUM(completion_tokens)`); `CourseUsageSummary` gains `promptTokens`/`completionTokens`; `FinOpsService.toCourseSummary` fixed from 4→6-col mapping; Zod `CourseUsageSummarySchema` fully typed |
 | 2026-07-27 | admin | ✅ | `ContentParser` robustness: `extractJson()` strips markdown fences and finds first `{` → last `}` to tolerate prose-prefixed LLM responses; content generation token limit raised 4096→8192 to prevent mid-JSON truncation; `@Size` limits raised: `lectureTitle` 120→300, `moduleName` 120→300 |
 | 2026-07-27 | admin | ✅ | Shared `JobsPanel` component (`components/jobs-panel.tsx`): self-contained TanStack Query polling (3s while RUNNING, 10s idle), shows status badge, progress bar, tokens-in/out, cost per job matched by `courseId`; rendered on both Learning Path and Generate Course admin pages — history persists across tab navigation |
+| 2026-07-27 | E11-T1 | ✅ | `POST /admin/content/import` endpoint: `ImportContentRequest(moduleId, rawJson)` → `ContentImportEndpointService` runs `ContentParser.parse()` + sandbox verification; 422 on parse error or sandbox failure (logs truncated at 1000 chars); persists via `ContentImportService.importLectureAndTask`; zero LLM calls; 6 unit tests (ContentImportEndpointServiceTest) + 5 @WebMvcTest slice tests (auth/validation/success); added `@MockBean CurriculumArchitectService` + `FlashcardGeneratorService` to SecurityFilterChainTest and InterviewQuestionControllerTest; SpotBugs exclusions for CurriculumArchitectService + FlashcardGeneratorService CT_CONSTRUCTOR_THROW; `SecurityConfig.allowedOrigins` defensive copy; build green |
+| 2026-07-27 | E11-T2 | ✅ | `frontend/app/(app)/admin/import/page.tsx`: 3-step UI (copy system prompt → select course/module → paste JSON + import); uses `useMutation` POST /admin/content/import; success shows lectureId/courseId links; error shows pre-formatted message; admin layout nav link added; `lib/queries/admin.ts` + `lib/schemas/admin.ts` extended; `npm run lint && npm run typecheck` clean |
+| 2026-07-27 | E11-T3 | ✅ | `AnthropicProperties` gains `generationModel` + `healingModel` fields with `effectiveGenerationModel()`/`effectiveHealingModel()` helpers (fallback to `defaultModel`); `ContentArchitectService` uses Haiku model on attempt 1 and Sonnet on retries 2–3; `application.yml` wired to `ANTHROPIC_GENERATION_MODEL` / `ANTHROPIC_HEALING_MODEL` env vars (defaults: haiku-4-5 / sonnet-4-6); 2 new model-tier unit tests in ContentArchitectServiceTest; all constructor call sites in 4 test files updated from 8-arg to 10-arg; build green |
 
 ---
 

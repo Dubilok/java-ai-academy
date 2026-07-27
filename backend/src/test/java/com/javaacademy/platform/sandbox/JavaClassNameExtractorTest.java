@@ -29,9 +29,9 @@ class JavaClassNameExtractorTest {
     }
 
     @Test
-    void extractPublicClassName_noPublicClass_returnsEmpty() {
+    void extractPublicClassName_noPublicClass_fallsBackToAnyClass() {
         String source = "class Solution { int solve() { return 0; } }";
-        assertThat(JavaClassNameExtractor.extractPublicClassName(source)).isEmpty();
+        assertThat(JavaClassNameExtractor.extractPublicClassName(source)).hasValue("Solution");
     }
 
     @Test

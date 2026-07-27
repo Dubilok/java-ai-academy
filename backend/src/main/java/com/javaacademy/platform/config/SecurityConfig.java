@@ -29,7 +29,7 @@ public class SecurityConfig {
             JwtService jwtService,
             @Value("${app.cors.allowed-origins:http://localhost:3000}") List<String> allowedOrigins) {
         this.jwtService = jwtService;
-        this.allowedOrigins = allowedOrigins;
+        this.allowedOrigins = List.copyOf(allowedOrigins);
     }
 
     @Bean

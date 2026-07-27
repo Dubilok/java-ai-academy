@@ -115,7 +115,8 @@ public class ContentArchitectService {
                     MAX_ATTEMPTS,
                     technology,
                     model);
-            ParseResult parseResult = callAndParse(prompt, model, attempt, startMs, totalPromptTokens, totalCompletionTokens);
+            ParseResult parseResult =
+                    callAndParse(prompt, model, attempt, startMs, totalPromptTokens, totalCompletionTokens);
             totalPromptTokens = parseResult.totalPromptTokens;
             totalCompletionTokens = parseResult.totalCompletionTokens;
 

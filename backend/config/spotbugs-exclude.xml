@@ -50,5 +50,13 @@
         <Class name="com.javaacademy.platform.ai.service.JudgeService"/>
         <Bug pattern="CT_CONSTRUCTOR_THROW"/>
     </Match>
+    <Match>
+        <Class name="com.javaacademy.platform.ai.service.CurriculumArchitectService"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
+    <Match>
+        <Class name="com.javaacademy.platform.interview.service.FlashcardGeneratorService"/>
+        <Bug pattern="CT_CONSTRUCTOR_THROW"/>
+    </Match>
 
 </FindBugsFilter>

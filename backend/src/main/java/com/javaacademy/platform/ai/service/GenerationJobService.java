@@ -67,13 +67,13 @@ public class GenerationJobService {
     public List<GenerationJobResponse> listJobs() {
         return jobs.values().stream()
                 .map(JobState::toResponse)
-                .sorted(Comparator.comparing(GenerationJobResponse::status,
-                        Comparator.comparingInt(s -> switch (s) {
+                .sorted(Comparator.comparing(GenerationJobResponse::status, Comparator.comparingInt(s -> switch (s) {
                             case RUNNING -> 0;
                             case FAILED -> 1;
                             case SUCCEEDED -> 2;
                         }))
-                        .thenComparing(Comparator.comparingInt(GenerationJobResponse::completedItems).reversed()))
+                        .thenComparing(Comparator.comparingInt(GenerationJobResponse::completedItems)
+                                .reversed()))
                 .toList();
     }
 
@@ -117,8 +117,8 @@ public class GenerationJobService {
                 .sum();
         state.totalItems = totalTasks;
 
-        UUID courseId = contentImportService.createCourse(
-                state.technology, curriculum.courseName(), curriculum.description());
+        UUID courseId =
+                contentImportService.createCourse(state.technology, curriculum.courseName(), curriculum.description());
 
         // Pre-create all modules and assign lecture order indices before any parallelism.
         // This avoids a UNIQUE(module_id, order_index) race if two threads call
@@ -130,25 +130,33 @@ public class GenerationJobService {
             UUID moduleId = contentImportService.createModule(courseId, confirmedModule.moduleName(), moduleIdx + 1);
             List<ConfirmedLecture> lectures = confirmedModule.lectures();
             for (int lectureIdx = 0; lectureIdx < lectures.size(); lectureIdx++) {
-                work.add(new LectureWork(moduleId, confirmedModule.moduleName(), lectures.get(lectureIdx), lectureIdx + 1));
+                work.add(new LectureWork(
+                        moduleId, confirmedModule.moduleName(), lectures.get(lectureIdx), lectureIdx + 1));
             }
         }
 
         Semaphore semaphore = new Semaphore(PARALLEL_WORKERS);
         try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
             List<CompletableFuture<Void>> futures = work.stream()
-                    .map(item -> CompletableFuture.runAsync(() -> {
-                        semaphore.acquireUninterruptibly();
-                        try {
-                            generateLectureWithTasks(state, item.moduleId(), item.moduleName(),
-                                    item.lecture(), item.lectureOrderIndex());
-                        } finally {
-                            semaphore.release();
-                        }
-                    }, executor))
+                    .map(item -> CompletableFuture.runAsync(
+                            () -> {
+                                semaphore.acquireUninterruptibly();
+                                try {
+                                    generateLectureWithTasks(
+                                            state,
+                                            item.moduleId(),
+                                            item.moduleName(),
+                                            item.lecture(),
+                                            item.lectureOrderIndex());
+                                } finally {
+                                    semaphore.release();
+                                }
+                            },
+                            executor))
                     .toList();
             try {
-                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+                CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                        .join();
             } catch (CompletionException completionException) {
                 Throwable cause = completionException.getCause();
                 throw cause instanceof RuntimeException runtimeException
@@ -160,18 +168,23 @@ public class GenerationJobService {
     }
 
     private void generateLectureWithTasks(
-            JobState state, UUID moduleId, String moduleName, ConfirmedLecture confirmedLecture, int lectureOrderIndex) {
+            JobState state,
+            UUID moduleId,
+            String moduleName,
+            ConfirmedLecture confirmedLecture,
+            int lectureOrderIndex) {
         state.currentItem = moduleName + " — " + confirmedLecture.lectureTitle();
         log.info("Job {}: generating '{}'", state.jobId, state.currentItem);
 
         String firstTopic = state.technology + ": " + confirmedLecture.lectureTitle();
         var firstContent = contentArchitectService.generateForTopic(firstTopic);
-        ImportResult result = contentImportService.importLectureAndTaskAtIndex(moduleId, firstContent, lectureOrderIndex);
+        ImportResult result =
+                contentImportService.importLectureAndTaskAtIndex(moduleId, firstContent, lectureOrderIndex);
         state.completedItems.incrementAndGet();
 
         for (int taskVariant = 2; taskVariant <= confirmedLecture.taskCount(); taskVariant++) {
-            state.currentItem = moduleName + " — " + confirmedLecture.lectureTitle()
-                    + " (task " + taskVariant + "/" + confirmedLecture.taskCount() + ")";
+            state.currentItem = moduleName + " — " + confirmedLecture.lectureTitle() + " (task " + taskVariant + "/"
+                    + confirmedLecture.taskCount() + ")";
             String additionalTopic = "Additional coding task (variant " + taskVariant + ") for the lecture '"
                     + confirmedLecture.lectureTitle() + "' in " + state.technology
                     + ". Generate a DIFFERENT task that tests a different aspect of the same concept."

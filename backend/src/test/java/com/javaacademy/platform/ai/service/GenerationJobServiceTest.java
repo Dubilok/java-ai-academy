@@ -37,7 +37,7 @@ class GenerationJobServiceTest {
         when(contentArchitectService.generateForTopic(any())).thenReturn(sampleContent());
         when(contentImportService.importGenerated(any(), any())).thenReturn(UUID.randomUUID());
 
-        UUID jobId = service.startJob(new GenerateCourseRequest("Java Records", null, null, null));
+        UUID jobId = service.startJob(new GenerateCourseRequest("Java Records", null, null, null, null));
 
         assertThat(jobId).isNotNull();
         // job exists (may already have completed if virtual thread is fast)
@@ -55,7 +55,7 @@ class GenerationJobServiceTest {
         when(contentArchitectService.generateForTopic(eq("Java Records"))).thenReturn(sampleContent());
         when(contentImportService.importGenerated(eq("Java Records"), any())).thenReturn(expectedCourseId);
 
-        UUID jobId = service.startJob(new GenerateCourseRequest("Java Records", null, null, null));
+        UUID jobId = service.startJob(new GenerateCourseRequest("Java Records", null, null, null, null));
         awaitTerminal(service, jobId);
 
         Optional<GenerationJobResponse> response = service.getJob(jobId);
@@ -70,7 +70,7 @@ class GenerationJobServiceTest {
         when(contentArchitectService.generateForTopic(any()))
                 .thenThrow(new com.javaacademy.platform.ai.client.LlmException("exhausted"));
 
-        UUID jobId = service.startJob(new GenerateCourseRequest("Java Records", null, null, null));
+        UUID jobId = service.startJob(new GenerateCourseRequest("Java Records", null, null, null, null));
         awaitTerminal(service, jobId);
 
         Optional<GenerationJobResponse> response = service.getJob(jobId);
@@ -89,8 +89,8 @@ class GenerationJobServiceTest {
         when(contentImportService.importGenerated(eq("Java Records"), any())).thenReturn(courseId1);
         when(contentImportService.importGenerated(eq("Spring Boot"), any())).thenReturn(courseId2);
 
-        UUID jobId1 = service.startJob(new GenerateCourseRequest("Java Records", null, null, null));
-        UUID jobId2 = service.startJob(new GenerateCourseRequest("Spring Boot", null, null, null));
+        UUID jobId1 = service.startJob(new GenerateCourseRequest("Java Records", null, null, null, null));
+        UUID jobId2 = service.startJob(new GenerateCourseRequest("Spring Boot", null, null, null, null));
 
         assertThat(jobId1).isNotEqualTo(jobId2);
         assertThat(service.getJob(jobId1)).isPresent();

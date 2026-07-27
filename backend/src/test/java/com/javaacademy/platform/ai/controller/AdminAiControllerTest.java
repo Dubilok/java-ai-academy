@@ -11,7 +11,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javaacademy.platform.ai.dto.AiUsageResponse;
 import com.javaacademy.platform.ai.dto.EvaluationSummary;
 import com.javaacademy.platform.ai.dto.GenerationJobResponse;
+import com.javaacademy.platform.ai.dto.ImportContentResponse;
 import com.javaacademy.platform.ai.enums.JobStatus;
+import com.javaacademy.platform.ai.service.ContentImportEndpointService;
+import com.javaacademy.platform.ai.service.CurriculumArchitectService;
 import com.javaacademy.platform.ai.service.EvaluationDashboardService;
 import com.javaacademy.platform.ai.service.FinOpsService;
 import com.javaacademy.platform.ai.service.GenerationJobService;
@@ -48,6 +51,12 @@ class AdminAiControllerTest {
 
     @MockBean
     EvaluationDashboardService evaluationDashboardService;
+
+    @MockBean
+    ContentImportEndpointService contentImportEndpointService;
+
+    @MockBean
+    CurriculumArchitectService curriculumArchitectService;
 
     @MockBean
     JwtService jwtService;
@@ -119,7 +128,7 @@ class AdminAiControllerTest {
     void getJob_existingRunningJob_returnsJobStatus() throws Exception {
         UUID jobId = UUID.randomUUID();
         GenerationJobResponse runningResponse =
-                new GenerationJobResponse(jobId, "Java Records", JobStatus.RUNNING, null, null);
+                new GenerationJobResponse(jobId, "Java Records", JobStatus.RUNNING, 0, 0, null, null, null);
         given(generationJobService.getJob(jobId)).willReturn(Optional.of(runningResponse));
 
         mockMvc.perform(get("/api/v1/admin/ai/jobs/" + jobId))
@@ -134,7 +143,7 @@ class AdminAiControllerTest {
         UUID jobId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
         GenerationJobResponse succeededResponse =
-                new GenerationJobResponse(jobId, "Java Records", JobStatus.SUCCEEDED, courseId, null);
+                new GenerationJobResponse(jobId, "Java Records", JobStatus.SUCCEEDED, 3, 3, null, courseId, null);
         given(generationJobService.getJob(jobId)).willReturn(Optional.of(succeededResponse));
 
         mockMvc.perform(get("/api/v1/admin/ai/jobs/" + jobId))
@@ -148,7 +157,14 @@ class AdminAiControllerTest {
     void getJob_failedJob_returnsErrorMessage() throws Exception {
         UUID jobId = UUID.randomUUID();
         GenerationJobResponse failedResponse = new GenerationJobResponse(
-                jobId, "Java Records", JobStatus.FAILED, null, "Content generation failed after 3 attempts");
+                jobId,
+                "Java Records",
+                JobStatus.FAILED,
+                0,
+                0,
+                null,
+                null,
+                "Content generation failed after 3 attempts");
         given(generationJobService.getJob(jobId)).willReturn(Optional.of(failedResponse));
 
         mockMvc.perform(get("/api/v1/admin/ai/jobs/" + jobId))
@@ -219,5 +235,59 @@ class AdminAiControllerTest {
                 .andExpect(jsonPath("$.byAgent").isArray())
                 .andExpect(jsonPath("$.byUser").isArray())
                 .andExpect(jsonPath("$.byCourse").isArray());
+    }
+
+    // ── POST /admin/content/import ─────────────────────────────────────────────
+
+    @Test
+    void importContent_unauthenticated_returns401() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/content/import")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"moduleId\":\"" + UUID.randomUUID() + "\",\"rawJson\":\"{}\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "STUDENT")
+    void importContent_studentRole_returns403() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/content/import")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"moduleId\":\"" + UUID.randomUUID() + "\",\"rawJson\":\"{}\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void importContent_validRequest_returns200WithCourseAndLectureIds() throws Exception {
+        UUID moduleId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID lectureId = UUID.randomUUID();
+        given(contentImportEndpointService.importFromJson(moduleId, "{\"valid\":true}"))
+                .willReturn(new ImportContentResponse(courseId, lectureId));
+
+        mockMvc.perform(post("/api/v1/admin/content/import")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"moduleId\":\"" + moduleId + "\",\"rawJson\":\"{\\\"valid\\\":true}\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.courseId").value(courseId.toString()))
+                .andExpect(jsonPath("$.lectureId").value(lectureId.toString()));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void importContent_nullModuleId_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/content/import")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"rawJson\":\"{}\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void importContent_blankRawJson_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/content/import")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"moduleId\":\"" + UUID.randomUUID() + "\",\"rawJson\":\"\"}"))
+                .andExpect(status().isBadRequest());
     }
 }

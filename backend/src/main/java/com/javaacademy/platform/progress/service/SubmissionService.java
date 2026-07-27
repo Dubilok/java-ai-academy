@@ -61,12 +61,16 @@ public class SubmissionService {
 
         // Enqueue only after the transaction commits — the worker needs the row visible in Postgres.
         UUID savedId = saved.getId();
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                submissionQueue.enqueue(savedId);
-            }
-        });
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    submissionQueue.enqueue(savedId);
+                }
+            });
+        } else {
+            submissionQueue.enqueue(savedId);
+        }
         log.debug("Submission {} created for task {} by {}", savedId, taskId, userEmail);
         return new SubmitResponse(saved.getId());
     }

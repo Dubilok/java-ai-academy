@@ -6,7 +6,6 @@ import com.javaacademy.platform.ai.client.LlmClient;
 import com.javaacademy.platform.ai.client.LlmException;
 import com.javaacademy.platform.ai.client.LlmRequest;
 import com.javaacademy.platform.ai.dto.CurriculumProposalResponse;
-import com.javaacademy.platform.ai.dto.ModuleProposal;
 import com.javaacademy.platform.ai.dto.ProposeLecturesResponse;
 import com.javaacademy.platform.ai.dto.ProposeModulesResponse;
 import java.io.IOException;
@@ -63,8 +62,8 @@ public class CurriculumArchitectService {
         try {
             CurriculumProposalResponse parsed = objectMapper.readValue(json, CurriculumProposalResponse.class);
             // Inject the input technology — the LLM only returns courseName/description/modules
-            CurriculumProposalResponse proposal =
-                    new CurriculumProposalResponse(technology, parsed.courseName(), parsed.description(), parsed.modules());
+            CurriculumProposalResponse proposal = new CurriculumProposalResponse(
+                    technology, parsed.courseName(), parsed.description(), parsed.modules());
             validate(proposal, technology);
             log.info(
                     "Curriculum proposed for '{}': {} modules",
@@ -91,14 +90,18 @@ public class CurriculumArchitectService {
                 + " Do not repeat any existing module name."
                 + " Return JSON: {\"modules\": [{\"moduleName\": \"...\", \"lectureTopics\": [\"...\", \"...\"]}]}";
 
-        String raw = llmClient.complete(new LlmRequest(null, systemPrompt, userPrompt, 1024)).content();
+        String raw = llmClient
+                .complete(new LlmRequest(null, systemPrompt, userPrompt, 1024))
+                .content();
         try {
-            ProposeModulesResponse response =
-                    objectMapper.readValue(extractJson(raw), ProposeModulesResponse.class);
+            ProposeModulesResponse response = objectMapper.readValue(extractJson(raw), ProposeModulesResponse.class);
             if (response.modules() == null || response.modules().isEmpty()) {
                 throw new LlmException("No additional modules returned for '" + technology + "'");
             }
-            log.info("Proposed {} additional modules for '{}'", response.modules().size(), technology);
+            log.info(
+                    "Proposed {} additional modules for '{}'",
+                    response.modules().size(),
+                    technology);
             return response;
         } catch (IOException ioException) {
             throw new LlmException("Failed to parse additional modules: " + ioException.getMessage());
@@ -122,10 +125,11 @@ public class CurriculumArchitectService {
                 + " Do not repeat existing topics."
                 + " Return JSON: {\"lectureTopics\": [\"...\", \"...\"]}";
 
-        String raw = llmClient.complete(new LlmRequest(null, systemPrompt, userPrompt, 512)).content();
+        String raw = llmClient
+                .complete(new LlmRequest(null, systemPrompt, userPrompt, 512))
+                .content();
         try {
-            ProposeLecturesResponse response =
-                    objectMapper.readValue(extractJson(raw), ProposeLecturesResponse.class);
+            ProposeLecturesResponse response = objectMapper.readValue(extractJson(raw), ProposeLecturesResponse.class);
             if (response.lectureTopics() == null || response.lectureTopics().isEmpty()) {
                 throw new LlmException("No additional lectures returned for module '" + moduleName + "'");
             }

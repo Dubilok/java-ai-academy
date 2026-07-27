@@ -60,7 +60,7 @@ class FinOpsServiceTest {
 
     @Test
     void getUsage_byAgentRow_returnsMappedSummary() {
-        Object[] agentRow = {AgentType.CONTENT_ARCHITECT, 10L, 5000L, 2500L, new BigDecimal("7.50"), 350.0};
+        Object[] agentRow = {"CONTENT_ARCHITECT", 10L, 5000L, 2500L, new BigDecimal("7.50"), 350.0};
         when(mockRepository.findByAgent(any(), any())).thenReturn(List.<Object[]>of(agentRow));
 
         AiUsageResponse response = service.getUsage(null, null);
@@ -77,7 +77,7 @@ class FinOpsServiceTest {
 
     @Test
     void getUsage_agentRowWithNullAvgLatency_handlesNull() {
-        Object[] agentRow = {AgentType.SOCRATIC_MENTOR, 5L, 2000L, 1000L, new BigDecimal("1.20"), null};
+        Object[] agentRow = {"SOCRATIC_MENTOR", 5L, 2000L, 1000L, new BigDecimal("1.20"), null};
         when(mockRepository.findByAgent(any(), any())).thenReturn(List.<Object[]>of(agentRow));
 
         AiUsageResponse response = service.getUsage(null, null);
@@ -103,7 +103,7 @@ class FinOpsServiceTest {
     @Test
     void getUsage_byCourseRow_returnsMappedSummary() {
         UUID courseId = UUID.randomUUID();
-        Object[] courseRow = {courseId, "Java 21 Fundamentals", 20L, new BigDecimal("6.00")};
+        Object[] courseRow = {courseId, "Java 21 Fundamentals", 20L, 5000L, 2000L, new BigDecimal("6.00")};
         when(mockRepository.findByCourse(any(), any())).thenReturn(List.<Object[]>of(courseRow));
 
         AiUsageResponse response = service.getUsage(null, null);

@@ -70,6 +70,15 @@ class SecurityFilterChainTest {
     @MockBean
     com.javaacademy.platform.ai.service.EvaluationDashboardService evaluationDashboardService;
 
+    @MockBean
+    com.javaacademy.platform.ai.service.ContentImportEndpointService contentImportEndpointService;
+
+    @MockBean
+    com.javaacademy.platform.ai.service.CurriculumArchitectService curriculumArchitectService;
+
+    @MockBean
+    com.javaacademy.platform.interview.service.FlashcardGeneratorService flashcardGeneratorService;
+
     // ── public paths ───────────────────────────────────────────────────────────
 
     @Test

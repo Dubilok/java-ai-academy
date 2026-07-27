@@ -19,6 +19,7 @@ import com.javaacademy.platform.interview.dto.CreateInterviewQuestionRequest;
 import com.javaacademy.platform.interview.dto.InterviewQuestionResponse;
 import com.javaacademy.platform.interview.dto.UpdateInterviewQuestionRequest;
 import com.javaacademy.platform.interview.enums.InterviewDifficulty;
+import com.javaacademy.platform.interview.service.FlashcardGeneratorService;
 import com.javaacademy.platform.interview.service.InterviewQuestionService;
 import java.util.List;
 import java.util.UUID;
@@ -46,6 +47,9 @@ class InterviewQuestionControllerTest {
 
     @MockBean
     InterviewQuestionService questionService;
+
+    @MockBean
+    FlashcardGeneratorService flashcardGeneratorService;
 
     @MockBean
     JwtService jwtService;
