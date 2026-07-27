@@ -111,8 +111,7 @@ export default function InterviewFlashcardsPage() {
       {/* Header */}
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-text-primary">Flashcards</h1>
-          <p className="mt-1.5 text-sm text-text-muted">
+          <p className="text-sm text-text-muted">
             Choose a topic to start practising, or jump into a mock interview.
           </p>
           {!isLoading && topics.length > 0 && (

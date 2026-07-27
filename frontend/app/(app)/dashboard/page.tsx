@@ -33,8 +33,7 @@ export default function CoursesPage() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-text-primary">Courses</h1>
-        <p className="mt-1.5 text-sm text-text-muted">
+        <p className="text-sm text-text-muted">
           Pick a course and start learning.
         </p>
         {!isLoading && courses.length > 0 && (
