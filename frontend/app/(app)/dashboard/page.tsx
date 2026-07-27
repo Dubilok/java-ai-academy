@@ -33,7 +33,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl p-8">
+    <div className="mx-auto max-w-5xl px-8 py-10">
       {me && (
         <section className="mb-8 rounded-xl bg-bg-card p-6">
           <div className="flex items-center justify-between gap-4">
