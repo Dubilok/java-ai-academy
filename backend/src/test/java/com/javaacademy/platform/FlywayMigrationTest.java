@@ -46,7 +46,8 @@ class FlywayMigrationTest {
             "ai_generation_log",
             "ai_evaluation",
             "ai_hints",
-            "lecture_chunks");
+            "lecture_chunks",
+            "voice_interview_questions");
 
     private static final List<String> EXPECTED_INDEXES = List.of(
             "idx_courses_technology",
@@ -73,7 +74,8 @@ class FlywayMigrationTest {
             "idx_ai_log_course_id",
             "idx_ai_log_created_at",
             "idx_ai_evaluation_created_at",
-            "idx_ai_evaluation_target_type");
+            "idx_ai_evaluation_target_type",
+            "idx_voice_questions_session");
 
     @Test
     void allExpectedTables_existAfterMigration() {
@@ -92,7 +94,7 @@ class FlywayMigrationTest {
     @Test
     void allMigrations_areAppliedWithNoChecksumMismatch() {
         MigrationInfo[] applied = flyway.info().applied();
-        assertThat(applied).hasSize(13);
+        assertThat(applied).hasSize(14);
         assertThat(applied[0].getVersion().getVersion()).isEqualTo("1");
         assertThat(applied[0].getDescription()).isEqualTo("initial schema");
         assertThat(applied[0].getState().isApplied()).isTrue();
@@ -145,6 +147,10 @@ class FlywayMigrationTest {
         assertThat(applied[12].getDescription()).isEqualTo("seed interview questions");
         assertThat(applied[12].getState().isApplied()).isTrue();
         assertThat(applied[12].getState().isFailed()).isFalse();
+        assertThat(applied[13].getVersion().getVersion()).isEqualTo("14");
+        assertThat(applied[13].getDescription()).isEqualTo("voice interview");
+        assertThat(applied[13].getState().isApplied()).isTrue();
+        assertThat(applied[13].getState().isFailed()).isFalse();
     }
 
     @Test
