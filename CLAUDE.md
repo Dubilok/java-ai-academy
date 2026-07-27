@@ -4,7 +4,7 @@
 > It is Claude's persistent memory across sessions. Read it fully before doing any work.
 > Every completed task, decision, and blocker is recorded here — not in chat history.
 
-**Status:** E10 complete — all 10 epics done · **Last updated:** 2026-07-25 · **Doc version:** 1.0
+**Status:** E10 complete + post-E10 admin tooling in progress · **Last updated:** 2026-07-27 · **Doc version:** 1.0
 
 ---
 
@@ -216,9 +216,12 @@ java-ai-academy/
 │       │   │   ├── repository/      ← UserProgressRepository, SubmissionRepository
 │       │   │   └── enums/           ← ProgressStatus, SubmissionStatus
 │       │   ├── ai/
+│       │   │   ├── client/          ← LlmClient, LlmRequest/Response/Exception; AnthropicLlmClient (@Primary), GeminiLlmClient, BedrockLlmClient
+│       │   │   ├── dto/             ← GeneratedContent, CurriculumProposalRequest/Response, ConfirmedCurriculum/Module/Lecture, ModuleProposal, ProposeLectures/ModulesRequest/Response, CourseUsageSummary, AiUsageResponse, …
 │       │   │   ├── entity/          ← AiGenerationLog, AiEvaluation
-│       │   │   ├── repository/
-│       │   │   └── enums/           ← AgentType, GenerationOutcome — when added
+│       │   │   ├── repository/      ← AiGenerationLogRepository (findTotals/ByAgent/ByUser/ByCourse native queries), AiEvaluationRepository
+│       │   │   ├── service/         ← ContentArchitectService (self-healing loop), CurriculumArchitectService (propose outline/modules/lectures), ContentParser (JSON extraction+validation), GenerationJobService (listJobs), ContentImportService, FinOpsService, JudgeService, SocraticMentorService, HintService
+│       │   │   └── enums/           ← AgentType, GenerationOutcome, JobStatus, EvaluationTargetType
 │       │   ├── interview/
 │       │   │   ├── entity/          ← InterviewQuestion, InterviewSession, InterviewAnswer
 │       │   │   ├── repository/
@@ -469,11 +472,15 @@ Full request/response bodies: `docs/api-contract.md`. OpenAPI is generated at `/
 ### Admin (`ROLE_ADMIN`)
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/admin/ai/generate-course` | `{ "technology": "Spring Cloud Gateway" }` → async job id |
-| GET | `/admin/ai/jobs/{id}` | generation status + self-healing attempt log |
+| POST | `/admin/ai/propose-curriculum` | `{ "technology": "..." }` → full course outline proposal |
+| POST | `/admin/ai/propose-modules` | suggest additional modules given existing ones |
+| POST | `/admin/ai/propose-lectures` | suggest additional lectures for a module |
+| POST | `/admin/ai/generate-course` | `{ "technology", "curriculum"? }` → async job id |
+| GET | `/admin/ai/jobs` | list all generation jobs (RUNNING first, then FAILED/SUCCEEDED) |
+| GET | `/admin/ai/jobs/{id}` | single job: status, progress, currentItem, courseId, errorMessage |
 | POST | `/admin/courses/{id}/publish` | publish/unpublish |
 | PUT | `/admin/tasks/{id}` | hand-edit generated content |
-| GET | `/admin/ai/usage` | token + cost telemetry |
+| GET | `/admin/ai/usage` | token + cost telemetry per agent/user/course with promptTokens + completionTokens |
 | POST | `/admin/interview/questions` | create flashcard |
 | PUT | `/admin/interview/questions/{id}` | update flashcard |
 | DELETE | `/admin/interview/questions/{id}` | delete flashcard |
@@ -589,6 +596,11 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E10-T4 CI: build → test → image → deploy; secrets from the platform store
 - [x] E10-T5 Load test: 100 concurrent submissions, assert p95 < 5s and no container leak
 - [x] E10-T6 Backup/restore runbook + `docs/RUNBOOK.md`
+
+### E11 — Content authoring & cost optimisation
+- [ ] E11-T1 `POST /admin/content/import` — accept same JSON schema as Content Architect output; runs `ContentParser` validation + sandbox verification; persists only on pass; no LLM call = zero API cost
+- [ ] E11-T2 "Import from JSON" UI panel in admin — paste-box + import button + field-level validation error display
+- [ ] E11-T3 Model-tier selector per agent: `claude-haiku-4-5` for first-pass generation, Sonnet only for self-healing retries; `app.llm.anthropic.generationModel` + `app.llm.anthropic.healingModel` config; ~10× cost reduction for bulk generation
 
 ---
 
@@ -763,6 +775,11 @@ cd ide-plugin
 | 2026-07-25 | E10-T4 | ✅ | CI pipeline expanded: `backend` job passes `ANTHROPIC_API_KEY`/`GEMINI_API_KEY` to Gradle tests; `frontend` job fixed (removed non-existent `npm run test` — unit tests land in E7); `docker` job (main-only, needs test jobs) logs in to GHCR via `GITHUB_TOKEN`, builds+pushes backend+frontend images tagged `sha-<sha>` + `latest` with GHA layer caching; `deploy` job (main-only, needs docker, `production` environment) SSH-deploys via `appleboy/ssh-action` when `DEPLOY_HOST` secret is set, else skips gracefully; required secrets documented in §10 |
 | 2026-07-25 | E10-T5 | ✅ | `SandboxLoadTest` (1 real-Docker test): 100 threads started simultaneously via CountDownLatch gate; semaphore limits to 8 concurrent; asserts all complete in ≤5min, all results PASSED (correct code), p95 `durationMs` < 5s, 0 leaked containers; bugfix: `JUnitXmlParser` was looking for `TEST-{testClassName}.xml` but JUnit Platform Console writes `TEST-junit-jupiter.xml` — fixed parser (drop testClassName param), renamed fixture files to `sandbox/passing/` and `sandbox/failing/` subdirs; all 550+ tests pass |
 | 2026-07-25 | E10-T6 | ✅ | `docs/RUNBOOK.md`: 7 sections — service inventory, PostgreSQL full backup (pg_dump) + WAL archiving + verification, Redis AOF backup, full restore procedure, PITR restore, routine ops (rolling restart, Flyway migration inspection, orphaned container cleanup, log rotation, health check), 5 incident playbooks (5xx, container leak, disk full, Redis OOM, JWT rotation), Prometheus metric thresholds |
+| 2026-07-27 | admin | ✅ | Learning Path wizard: `CurriculumArchitectService` proposes full course outline via Claude; multi-step wizard (propose → select modules → select lectures/task counts → generate); "✨ Suggest more" AI buttons for modules and per-module lectures; task-count stepper 1–10; `CurriculumProposalRequest/Response`, `ConfirmedCurriculum/Module/Lecture`, `ModuleProposal` DTOs |
+| 2026-07-27 | admin | ✅ | New admin API: `POST /admin/ai/propose-curriculum`, `/propose-modules`, `/propose-lectures`; `GET /admin/ai/jobs` list endpoint (RUNNING→FAILED→SUCCEEDED sort); `GET /admin/courses` + `GET /admin/courses/{courseId}/modules` for content pickers; `AdminAiController` extended |
+| 2026-07-27 | admin | ✅ | Per-job cost tracking: `AiGenerationLogRepository.findByCourse` returns 6 cols (added `SUM(prompt_tokens)`, `SUM(completion_tokens)`); `CourseUsageSummary` gains `promptTokens`/`completionTokens`; `FinOpsService.toCourseSummary` fixed from 4→6-col mapping; Zod `CourseUsageSummarySchema` fully typed |
+| 2026-07-27 | admin | ✅ | `ContentParser` robustness: `extractJson()` strips markdown fences and finds first `{` → last `}` to tolerate prose-prefixed LLM responses; content generation token limit raised 4096→8192 to prevent mid-JSON truncation; `@Size` limits raised: `lectureTitle` 120→300, `moduleName` 120→300 |
+| 2026-07-27 | admin | ✅ | Shared `JobsPanel` component (`components/jobs-panel.tsx`): self-contained TanStack Query polling (3s while RUNNING, 10s idle), shows status badge, progress bar, tokens-in/out, cost per job matched by `courseId`; rendered on both Learning Path and Generate Course admin pages — history persists across tab navigation |
 
 ---
 
@@ -802,6 +819,16 @@ Managed by `/dev-task-open-question`. Format:
 **Note:** JavaRush's lecture text, task wording, characters, and artwork are copyrighted. All platform content must be original — AI-generated or written by you. Cloning the *mechanics* (levels, XP, instant verification, quest map) is fine; copying text, task descriptions, or assets is not.
 **Recommendation:** Generate all content via A1 and treat any imported JavaRush text as a hard blocker. Confirm you're aligned before E2-T6 seed data.
 **Decision:** _pending_
+
+### Q4 — AI cost for content generation: reduce API spend    [RESOLVED 2026-07-27]
+**Context:** Full one-click generation of a 35-lecture Spring Boot course cost ~$X in API tokens. At scale this is unsustainable.
+**Options:**
+- **A — Chat-to-import:** admin authors content in Claude.ai (Pro subscription, zero API cost), copies JSON, imports via `POST /admin/content/import`.
+- **B — Haiku for bulk generation:** use `claude-haiku-4-5` (~10× cheaper) for first-pass generation, Sonnet only for self-healing retries.
+- **C — Manual authoring UI:** rich markdown+Monaco editor; AI is fully optional.
+**Recommendation:** **A + B together.** A eliminates authoring cost immediately; B cuts cost for anyone who still wants one-click generation.
+**Decision:** Implement A + B (E11-T1/T2 + E11-T3).
+**Consequences:** Add `POST /admin/content/import` endpoint + import UI panel (E11-T1/T2). Add model-tier config `generationModel`/`healingModel` per agent (E11-T3).
 
 ---
 
