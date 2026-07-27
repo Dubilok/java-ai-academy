@@ -2,167 +2,123 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
-import { Flashcard } from "@/components/flashcard";
+import { useMemo } from "react";
 import { fetchFlashcards } from "@/lib/queries/interview";
 import type { InterviewQuestion } from "@/lib/schemas/interview";
 
-const FILTER_OPTIONS = [
-  { value: "", label: "All levels" },
-  { value: "BEGINNER", label: "Beginner" },
-  { value: "INTERMEDIATE", label: "Intermediate" },
-  { value: "ADVANCED", label: "Advanced" },
-  { value: "EXPERT", label: "Expert" },
-] as const;
-
-const DIFFICULTY_ACTIVE: Record<string, string> = {
-  "": "bg-white/15 text-text-primary",
-  BEGINNER: "bg-success text-bg-base",
-  INTERMEDIATE: "bg-accent-blue text-white",
-  ADVANCED: "bg-accent-java text-white",
-  EXPERT: "bg-error text-white",
-};
-
-const DIFFICULTY_INACTIVE: Record<string, string> = {
-  "": "text-text-muted hover:text-text-primary hover:bg-white/5",
-  BEGINNER: "text-success hover:bg-success/10",
-  INTERMEDIATE: "text-accent-blue hover:bg-accent-blue/10",
-  ADVANCED: "text-accent-java hover:bg-accent-java/10",
-  EXPERT: "text-error hover:bg-error/10",
-};
-
-function groupByTechnology(cards: InterviewQuestion[]): [string, InterviewQuestion[]][] {
-  const map = new Map<string, InterviewQuestion[]>();
-  for (const card of cards) {
-    const group = map.get(card.technology) ?? [];
-    group.push(card);
-    map.set(card.technology, group);
-  }
-  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+interface TopicSummary {
+  technology: string;
+  totalCards: number;
+  categories: string[];
 }
 
-function TopicGroup({
-  technology,
-  cards,
-}: {
-  technology: string;
-  cards: InterviewQuestion[];
-}) {
-  const [index, setIndex] = useState(0);
-  const current = cards[index];
+function buildTopics(cards: InterviewQuestion[]): TopicSummary[] {
+  const map = new Map<string, { total: number; cats: Set<string> }>();
+  for (const card of cards) {
+    const entry = map.get(card.technology) ?? { total: 0, cats: new Set<string>() };
+    entry.total += 1;
+    entry.cats.add(card.category);
+    map.set(card.technology, entry);
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([technology, { total, cats }]) => ({
+      technology,
+      totalCards: total,
+      categories: Array.from(cats).sort(),
+    }));
+}
+
+function TopicTile({ topic }: { topic: TopicSummary }) {
+  const { technology, totalCards, categories } = topic;
+  const visibleCats = categories.slice(0, 4);
+  const extraCount = categories.length - visibleCats.length;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/10 bg-bg-card">
+    <Link
+      href={`/interview/topics/${encodeURIComponent(technology)}`}
+      className="group flex flex-col gap-4 rounded-2xl border border-white/10 bg-bg-card p-5 transition-all hover:border-accent-java/40 hover:bg-bg-card"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-3.5">
+      <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-java/15 text-xs font-bold text-accent-java"
-            aria-hidden="true"
-          >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-java/15 text-base font-bold text-accent-java transition-colors group-hover:bg-accent-java/25">
             {technology.charAt(0).toUpperCase()}
           </span>
-          <h2 className="text-sm font-semibold text-text-primary">{technology}</h2>
+          <div>
+            <p className="text-sm font-semibold text-text-primary">{technology}</p>
+            <p className="text-xs text-text-muted">
+              {totalCards} card{totalCards !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
-        <span className="text-xs text-text-muted">
-          {index + 1} / {cards.length}
+        <span className="mt-1 text-text-muted transition-colors group-hover:text-text-primary" aria-hidden="true">
+          →
         </span>
       </div>
 
-      {/* Card area */}
-      <div className="p-5 pb-0">
-        {current && <Flashcard key={current.id} question={current} />}
-      </div>
-
-      {/* Navigation */}
-      <div className="flex items-center justify-between px-5 py-4">
-        <button
-          onClick={() => setIndex((i) => Math.max(i - 1, 0))}
-          disabled={index === 0}
-          className="rounded-lg border border-white/10 px-4 py-1.5 text-xs text-text-muted transition-colors hover:border-accent-blue hover:text-accent-blue disabled:pointer-events-none disabled:opacity-30"
-          aria-label="Previous card"
-        >
-          ← Prev
-        </button>
-
-        {/* Dot progress */}
-        <div className="flex items-center gap-1.5" role="tablist" aria-label="Card progress">
-          {cards.map((_, dotIndex) => (
-            <button
-              key={dotIndex}
-              role="tab"
-              aria-selected={dotIndex === index}
-              aria-label={`Card ${dotIndex + 1}`}
-              onClick={() => setIndex(dotIndex)}
-              className={`h-1.5 rounded-full transition-all duration-200 ${
-                dotIndex === index
-                  ? "w-5 bg-accent-java"
-                  : "w-1.5 bg-white/20 hover:bg-white/40"
-              }`}
-            />
+      {/* Category pills */}
+      {categories.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {visibleCats.map((cat) => (
+            <span
+              key={cat}
+              className="rounded-md bg-white/5 px-2 py-0.5 text-xs text-text-muted"
+            >
+              {cat}
+            </span>
           ))}
+          {extraCount > 0 && (
+            <span className="rounded-md bg-white/5 px-2 py-0.5 text-xs text-text-muted">
+              +{extraCount} more
+            </span>
+          )}
         </div>
-
-        <button
-          onClick={() => setIndex((i) => Math.min(i + 1, cards.length - 1))}
-          disabled={index >= cards.length - 1}
-          className="rounded-lg border border-white/10 px-4 py-1.5 text-xs text-text-muted transition-colors hover:border-accent-blue hover:text-accent-blue disabled:pointer-events-none disabled:opacity-30"
-          aria-label="Next card"
-        >
-          Next →
-        </button>
-      </div>
-    </section>
+      )}
+    </Link>
   );
 }
 
-function SkeletonGroup() {
+function SkeletonTile() {
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-bg-card">
-      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-3.5">
-        <div className="h-7 w-7 animate-pulse rounded-lg bg-white/10" />
-        <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
-      </div>
-      <div className="p-5 pb-0">
-        <div className="h-64 animate-pulse rounded-xl bg-white/5" />
-      </div>
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="h-7 w-16 animate-pulse rounded-lg bg-white/10" />
-        <div className="flex gap-1.5">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="h-1.5 w-1.5 animate-pulse rounded-full bg-white/10" />
-          ))}
+    <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-bg-card p-5">
+      <div className="flex items-start gap-3">
+        <div className="h-10 w-10 animate-pulse rounded-xl bg-white/10" />
+        <div className="flex flex-col gap-1.5 pt-1">
+          <div className="h-4 w-20 animate-pulse rounded bg-white/10" />
+          <div className="h-3 w-12 animate-pulse rounded bg-white/10" />
         </div>
-        <div className="h-7 w-16 animate-pulse rounded-lg bg-white/10" />
+      </div>
+      <div className="flex gap-1.5">
+        <div className="h-5 w-16 animate-pulse rounded-md bg-white/10" />
+        <div className="h-5 w-20 animate-pulse rounded-md bg-white/10" />
+        <div className="h-5 w-14 animate-pulse rounded-md bg-white/10" />
       </div>
     </div>
   );
 }
 
 export default function InterviewFlashcardsPage() {
-  const [difficulty, setDifficulty] = useState("");
-
   const { data: cards = [], isLoading, isError } = useQuery({
-    queryKey: ["flashcards", difficulty],
-    queryFn: () => fetchFlashcards({ difficulty: difficulty || undefined }),
+    queryKey: ["flashcards"],
+    queryFn: () => fetchFlashcards(),
   });
 
-  const groups = groupByTechnology(cards);
-  const totalTopics = groups.length;
+  const topics = useMemo(() => buildTopics(cards), [cards]);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      {/* Page header */}
+      {/* Header */}
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-text-primary">Flashcards</h1>
           <p className="mt-1.5 text-sm text-text-muted">
-            Tap a card to reveal the answer. Practice until every flip is instant.
+            Choose a topic to start practising, or jump into a mock interview.
           </p>
-          {!isLoading && cards.length > 0 && (
+          {!isLoading && topics.length > 0 && (
             <p className="mt-1 text-xs text-text-muted">
-              {cards.length} card{cards.length !== 1 ? "s" : ""} across {totalTopics} topic
-              {totalTopics !== 1 ? "s" : ""}
+              {cards.length} card{cards.length !== 1 ? "s" : ""} across {topics.length} topic
+              {topics.length !== 1 ? "s" : ""}
             </p>
           )}
         </div>
@@ -174,36 +130,16 @@ export default function InterviewFlashcardsPage() {
         </Link>
       </div>
 
-      {/* Difficulty filter */}
-      <div className="mb-8 flex flex-wrap gap-2">
-        {FILTER_OPTIONS.map(({ value, label }) => {
-          const isActive = difficulty === value;
-          return (
-            <button
-              key={value}
-              onClick={() => setDifficulty(value)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                isActive
-                  ? (DIFFICULTY_ACTIVE[value] ?? "bg-white/15 text-text-primary")
-                  : (DIFFICULTY_INACTIVE[value] ?? "text-text-muted hover:text-text-primary")
-              }`}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Loading skeleton */}
+      {/* Loading */}
       {isLoading && (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          {[1, 2, 3, 4].map((n) => (
-            <SkeletonGroup key={n} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((n) => (
+            <SkeletonTile key={n} />
           ))}
         </div>
       )}
 
-      {/* Error state */}
+      {/* Error */}
       {isError && (
         <div className="rounded-2xl border border-error/20 bg-error/5 px-6 py-8 text-center">
           <p className="text-sm font-medium text-error">Failed to load flashcards.</p>
@@ -211,30 +147,19 @@ export default function InterviewFlashcardsPage() {
         </div>
       )}
 
-      {/* Empty state */}
-      {!isLoading && !isError && cards.length === 0 && (
+      {/* Empty */}
+      {!isLoading && !isError && topics.length === 0 && (
         <div className="rounded-2xl border border-white/10 bg-bg-card px-8 py-16 text-center">
-          <p className="text-base font-semibold text-text-primary">No flashcards found</p>
-          <p className="mt-1 text-sm text-text-muted">
-            {difficulty ? "Try a different difficulty level, or " : ""}
-            ask an admin to generate some cards.
-          </p>
-          {difficulty && (
-            <button
-              onClick={() => setDifficulty("")}
-              className="mt-4 rounded-lg border border-white/10 px-4 py-2 text-sm text-text-muted hover:text-text-primary"
-            >
-              Clear filter
-            </button>
-          )}
+          <p className="text-base font-semibold text-text-primary">No flashcards yet</p>
+          <p className="mt-1 text-sm text-text-muted">Ask an admin to generate some cards.</p>
         </div>
       )}
 
-      {/* Topic groups grid */}
-      {!isLoading && !isError && groups.length > 0 && (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          {groups.map(([technology, groupCards]) => (
-            <TopicGroup key={technology} technology={technology} cards={groupCards} />
+      {/* Topic grid — 3 columns on large screens */}
+      {!isLoading && !isError && topics.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {topics.map((topic) => (
+            <TopicTile key={topic.technology} topic={topic} />
           ))}
         </div>
       )}

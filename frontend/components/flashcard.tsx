@@ -30,9 +30,10 @@ function FlipIcon({ className }: { className?: string }) {
 
 interface FlashcardProps {
   question: InterviewQuestion;
+  heightClass?: string;
 }
 
-export function Flashcard({ question }: FlashcardProps) {
+export function Flashcard({ question, heightClass = "h-64" }: FlashcardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const colors = DIFFICULTY_COLOR[question.difficulty] ?? {
     text: "text-text-muted",
@@ -54,7 +55,7 @@ export function Flashcard({ question }: FlashcardProps) {
 
   return (
     <div
-      className="h-64 w-full cursor-pointer select-none"
+      className={`${heightClass} w-full cursor-pointer select-none`}
       style={{ perspective: "1200px" }}
       onClick={handleFlip}
       onKeyDown={handleKeyDown}
