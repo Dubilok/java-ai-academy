@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { createFlashcard, deleteFlashcard, fetchAllFlashcards } from "@/lib/queries/admin";
+import { createFlashcard, deleteFlashcard, fetchAllFlashcards, generateFlashcards } from "@/lib/queries/admin";
 import type { InterviewQuestion } from "@/lib/schemas/interview";
 
 const DIFFICULTIES = ["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"] as const;
@@ -80,6 +80,113 @@ function FlashcardRow({ card, onDelete }: { card: InterviewQuestion; onDelete: (
   );
 }
 
+const BLANK_AI_FORM = {
+  technology: "",
+  category: "",
+  count: 5,
+  difficulty: "",
+};
+
+function AiGenerateSection({ onGenerated }: { onGenerated: () => void }) {
+  const [form, setForm] = useState(BLANK_AI_FORM);
+  const [lastCount, setLastCount] = useState<number | null>(null);
+
+  const { mutate: generate, isPending, isError, isSuccess } = useMutation({
+    mutationFn: () =>
+      generateFlashcards({
+        technology: form.technology.trim(),
+        category: form.category.trim() || undefined,
+        count: form.count,
+        difficulty: form.difficulty || undefined,
+      }),
+    onSuccess: (data) => {
+      setLastCount(data.length);
+      setForm(BLANK_AI_FORM);
+      onGenerated();
+    },
+  });
+
+  const inputClass =
+    "rounded-lg border border-white/10 bg-bg-base px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue";
+
+  return (
+    <section className="mb-8 rounded-xl border border-accent-java/20 bg-bg-card p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="text-base font-semibold text-text-primary">Generate with AI</span>
+        <span className="rounded-full bg-accent-java/10 px-2 py-0.5 text-xs font-semibold text-accent-java">Claude</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="col-span-2 flex flex-col gap-1 sm:col-span-1">
+          <label className="text-xs text-text-muted">Technology *</label>
+          <input
+            value={form.technology}
+            onChange={(e) => setForm((p) => ({ ...p, technology: e.target.value }))}
+            placeholder="Java, Spring, Kafka…"
+            className={inputClass + " w-full"}
+          />
+        </div>
+
+        <div className="col-span-2 flex flex-col gap-1 sm:col-span-1">
+          <label className="text-xs text-text-muted">Category (optional)</label>
+          <input
+            value={form.category}
+            onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
+            placeholder="Concurrency, JVM, Streams…"
+            className={inputClass + " w-full"}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-text-muted">Count (1–20)</label>
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={form.count}
+            onChange={(e) => setForm((p) => ({ ...p, count: Math.min(20, Math.max(1, Number(e.target.value))) }))}
+            className={inputClass + " w-full"}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-text-muted">Difficulty</label>
+          <select
+            value={form.difficulty}
+            onChange={(e) => setForm((p) => ({ ...p, difficulty: e.target.value }))}
+            className={inputClass + " w-full"}
+          >
+            <option value="">Mixed</option>
+            {DIFFICULTIES.map((d) => (
+              <option key={d} value={d}>{d.charAt(0) + d.slice(1).toLowerCase()}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-4">
+        <button
+          onClick={() => generate()}
+          disabled={isPending || !form.technology.trim()}
+          className="rounded-lg bg-accent-java px-5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {isPending ? "Generating…" : `Generate ${form.count} card${form.count !== 1 ? "s" : ""}`}
+        </button>
+
+        {isPending && (
+          <span className="text-xs text-text-muted">Calling Claude, this may take a few seconds…</span>
+        )}
+        {isSuccess && lastCount !== null && (
+          <span className="text-xs text-success">✓ {lastCount} card{lastCount !== 1 ? "s" : ""} added</span>
+        )}
+        {isError && (
+          <span className="text-xs text-error">Generation failed — check the API key or try again.</span>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function FlashcardsAdminPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(BLANK_FORM);
@@ -124,7 +231,11 @@ export default function FlashcardsAdminPage() {
 
   return (
     <>
-      {/* Add form */}
+      <AiGenerateSection
+        onGenerated={() => void queryClient.invalidateQueries({ queryKey: ["admin-flashcards"] })}
+      />
+
+      {/* Manual add form */}
       <section className="mb-8 rounded-xl bg-bg-card p-6">
         <h2 className="mb-4 text-base font-semibold text-text-primary">Add flashcard</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">

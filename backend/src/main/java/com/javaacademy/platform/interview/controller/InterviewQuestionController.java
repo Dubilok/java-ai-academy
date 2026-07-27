@@ -1,9 +1,11 @@
 package com.javaacademy.platform.interview.controller;
 
 import com.javaacademy.platform.interview.dto.CreateInterviewQuestionRequest;
+import com.javaacademy.platform.interview.dto.GenerateFlashcardsRequest;
 import com.javaacademy.platform.interview.dto.InterviewQuestionResponse;
 import com.javaacademy.platform.interview.dto.UpdateInterviewQuestionRequest;
 import com.javaacademy.platform.interview.enums.InterviewDifficulty;
+import com.javaacademy.platform.interview.service.FlashcardGeneratorService;
 import com.javaacademy.platform.interview.service.InterviewQuestionService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class InterviewQuestionController {
 
     private final InterviewQuestionService questionService;
+    private final FlashcardGeneratorService flashcardGeneratorService;
 
     @GetMapping("/interview/questions")
     public List<InterviewQuestionResponse> listQuestions(
@@ -36,6 +39,12 @@ public class InterviewQuestionController {
             @RequestParam(required = false) @Nullable String category,
             @RequestParam(required = false) @Nullable InterviewDifficulty difficulty) {
         return questionService.findQuestions(technology, category, difficulty);
+    }
+
+    @PostMapping("/admin/interview/questions/generate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<InterviewQuestionResponse> generateQuestions(@Valid @RequestBody GenerateFlashcardsRequest request) {
+        return flashcardGeneratorService.generate(request);
     }
 
     @PostMapping("/admin/interview/questions")

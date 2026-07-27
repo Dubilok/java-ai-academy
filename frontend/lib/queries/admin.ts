@@ -53,6 +53,16 @@ export async function fetchAllFlashcards(): Promise<InterviewQuestion[]> {
   return InterviewQuestionsResponseSchema.parse(response.data);
 }
 
+export async function generateFlashcards(payload: {
+  technology: string;
+  category?: string;
+  count: number;
+  difficulty?: string;
+}): Promise<InterviewQuestion[]> {
+  const response = await api.post("/admin/interview/questions/generate", payload);
+  return InterviewQuestionsResponseSchema.parse(response.data);
+}
+
 export async function createFlashcard(payload: {
   technology: string;
   category: string;
