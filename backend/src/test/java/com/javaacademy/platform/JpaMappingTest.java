@@ -19,10 +19,13 @@ import com.javaacademy.platform.catalog.repository.TaskRepository;
 import com.javaacademy.platform.interview.entity.InterviewAnswer;
 import com.javaacademy.platform.interview.entity.InterviewQuestion;
 import com.javaacademy.platform.interview.entity.InterviewSession;
+import com.javaacademy.platform.interview.entity.VoiceInterviewQuestion;
 import com.javaacademy.platform.interview.enums.InterviewDifficulty;
+import com.javaacademy.platform.interview.enums.InterviewSessionStatus;
 import com.javaacademy.platform.interview.repository.InterviewAnswerRepository;
 import com.javaacademy.platform.interview.repository.InterviewQuestionRepository;
 import com.javaacademy.platform.interview.repository.InterviewSessionRepository;
+import com.javaacademy.platform.interview.repository.VoiceInterviewQuestionRepository;
 import com.javaacademy.platform.progress.entity.Submission;
 import com.javaacademy.platform.progress.entity.UserProgress;
 import com.javaacademy.platform.progress.enums.ProgressStatus;
@@ -80,6 +83,9 @@ class JpaMappingTest {
 
     @Autowired
     InterviewAnswerRepository interviewAnswerRepository;
+
+    @Autowired
+    VoiceInterviewQuestionRepository voiceInterviewQuestionRepository;
 
     @Autowired
     AiGenerationLogRepository aiGenerationLogRepository;
@@ -219,6 +225,55 @@ class JpaMappingTest {
         InterviewAnswer saved = interviewAnswerRepository.save(answer);
         assertThat(saved.getId()).isNotNull();
         assertThat(interviewAnswerRepository.findById(saved.getId())).isPresent();
+    }
+
+    @Test
+    void voiceInterviewQuestion_persistsAndLoadsById() {
+        User user = userRepository.save(makeUser("voice@test.com"));
+        InterviewSession session = new InterviewSession();
+        session.setUser(user);
+        session.setTechnology("Java");
+        session.setStatus(InterviewSessionStatus.ACTIVE);
+        session.setCreatedAt(Instant.now());
+        InterviewSession savedSession = interviewSessionRepository.save(session);
+
+        VoiceInterviewQuestion vq = new VoiceInterviewQuestion();
+        vq.setSession(savedSession);
+        vq.setTurnIndex(0);
+        vq.setQuestion("Explain what a ClassLoader does in Java.");
+        VoiceInterviewQuestion saved = voiceInterviewQuestionRepository.save(vq);
+        assertThat(saved.getId()).isNotNull();
+        assertThat(voiceInterviewQuestionRepository.findById(saved.getId())).isPresent();
+    }
+
+    @Test
+    void interviewAnswer_withVoiceQuestion_persistsNullableQuestionId() {
+        User user = userRepository.save(makeUser("voice2@test.com"));
+        InterviewSession session = new InterviewSession();
+        session.setUser(user);
+        session.setTechnology("Java");
+        session.setStatus(InterviewSessionStatus.ACTIVE);
+        session.setCreatedAt(Instant.now());
+        InterviewSession savedSession = interviewSessionRepository.save(session);
+
+        VoiceInterviewQuestion vq = new VoiceInterviewQuestion();
+        vq.setSession(savedSession);
+        vq.setTurnIndex(0);
+        vq.setQuestion("What is the Java memory model?");
+        VoiceInterviewQuestion savedVq = voiceInterviewQuestionRepository.save(vq);
+
+        InterviewAnswer answer = new InterviewAnswer();
+        answer.setSession(savedSession);
+        answer.setVoiceQuestion(savedVq);
+        answer.setTranscript("The Java memory model defines how threads interact through memory.");
+        answer.setDynamic(true);
+        InterviewAnswer saved = interviewAnswerRepository.save(answer);
+        assertThat(saved.getId()).isNotNull();
+        assertThat(saved.getQuestion()).isNull();
+        assertThat(saved.getVoiceQuestion()).isNotNull();
+        assertThat(saved.getTranscript())
+                .isEqualTo("The Java memory model defines how threads interact through memory.");
+        assertThat(saved.isDynamic()).isTrue();
     }
 
     @Test

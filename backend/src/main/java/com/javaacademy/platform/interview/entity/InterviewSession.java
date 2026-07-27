@@ -1,6 +1,7 @@
 package com.javaacademy.platform.interview.entity;
 
 import com.javaacademy.platform.auth.entity.User;
+import com.javaacademy.platform.interview.enums.InterviewMode;
 import com.javaacademy.platform.interview.enums.InterviewSessionStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,6 +42,22 @@ public class InterviewSession {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private InterviewSessionStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private InterviewMode mode = InterviewMode.TEXT;
+
+    @Nullable
+    @Column(name = "topic_map_json")
+    private String topicMapJson;
+
+    @Nullable
+    @Column(name = "total_turns")
+    private Integer totalTurns;
+
+    @Nullable
+    @Column(name = "max_turns")
+    private Integer maxTurns;
 
     @Nullable
     @ManyToOne(fetch = FetchType.LAZY)

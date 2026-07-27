@@ -14,13 +14,12 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import org.jspecify.annotations.Nullable;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "interview_answers")
-public class InterviewAnswer {
+@Table(name = "voice_interview_questions")
+public class VoiceInterviewQuestion {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -31,34 +30,11 @@ public class InterviewAnswer {
     @JoinColumn(name = "session_id", nullable = false)
     private InterviewSession session;
 
-    @Nullable
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id")
-    private InterviewQuestion question;
+    @Column(name = "turn_index", nullable = false)
+    private int turnIndex;
 
-    @Nullable
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "voice_question_id")
-    private VoiceInterviewQuestion voiceQuestion;
-
-    @Nullable
-    @Column(name = "answer_text")
-    private String answerText;
-
-    @Nullable
-    @Column
-    private Integer score;
-
-    @Nullable
-    @Column
-    private String transcript;
-
-    @Column(name = "is_dynamic", nullable = false)
-    private boolean isDynamic = false;
-
-    @Nullable
-    @Column(name = "turn_assessment_json")
-    private String turnAssessmentJson;
+    @Column(nullable = false)
+    private String question;
 
     @Column(name = "created_at", nullable = false, updatable = false, insertable = false)
     private Instant createdAt;
