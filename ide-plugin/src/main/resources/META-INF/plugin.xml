@@ -25,19 +25,4 @@
             isLogByDefault="true"/>
     </extensions>
 
-    <actions>
-        <group id="AcademyActionGroup" text="Java AI Academy" popup="true">
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
-            <action
-                id="Academy.StartTask"
-                class="com.javaacademy.plugin.actions.StartTaskAction"
-                text="Start Task"
-                description="Load the selected task template into a new Solution.java file"/>
-            <action
-                id="Academy.VerifyTask"
-                class="com.javaacademy.plugin.actions.VerifyTaskAction"
-                text="Verify Solution"
-                description="Submit the current Solution.java and show the verdict"/>
-        </group>
-    </actions>
 </idea-plugin>

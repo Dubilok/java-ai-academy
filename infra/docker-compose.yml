@@ -1,14 +1,14 @@
 # Local development stack. Verify with:  docker compose -f infra/docker-compose.yml ps
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: academy-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-javaacademy}
       POSTGRES_USER: ${POSTGRES_USER:-academy}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-academy}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
     container_name: academy-redis
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redisdata:/data
     healthcheck:

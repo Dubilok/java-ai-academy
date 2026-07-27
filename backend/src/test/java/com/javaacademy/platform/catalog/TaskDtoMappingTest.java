@@ -6,6 +6,9 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javaacademy.platform.catalog.dto.TaskResponse;
+import com.javaacademy.platform.catalog.entity.Course;
+import com.javaacademy.platform.catalog.entity.CourseModule;
+import com.javaacademy.platform.catalog.entity.Lecture;
 import com.javaacademy.platform.catalog.entity.Task;
 import com.javaacademy.platform.catalog.repository.CourseModuleRepository;
 import com.javaacademy.platform.catalog.repository.CourseRepository;
@@ -58,7 +61,7 @@ class TaskDtoMappingTest {
 
         assertThat(components)
                 .as("TaskResponse must expose exactly these fields and no secret ones")
-                .containsExactly("id", "title", "description", "difficulty", "templateCode", "xpReward");
+                .containsExactly("id", "courseId", "title", "description", "difficulty", "templateCode", "xpReward");
 
         assertThat(components).doesNotContain("testCode", "solutionCode");
     }
@@ -114,6 +117,7 @@ class TaskDtoMappingTest {
 
         // Verify the JSON has exactly the expected keys and nothing else
         assertThat(json).contains("\"id\"");
+        assertThat(json).contains("\"courseId\"");
         assertThat(json).contains("\"title\"");
         assertThat(json).contains("\"description\"");
         assertThat(json).contains("\"difficulty\"");
@@ -124,7 +128,23 @@ class TaskDtoMappingTest {
     // ── helper ────────────────────────────────────────────────────────────────
 
     private Task taskWithSecrets() {
+        Course course = new Course();
+        course.setTitle("Java Fundamentals");
+        course.setTechnology("Java");
+        course.setPublished(true);
+
+        CourseModule module = new CourseModule();
+        module.setCourse(course);
+        module.setTitle("Module 1");
+        module.setOrderIndex(1);
+
+        Lecture lecture = new Lecture();
+        lecture.setModule(module);
+        lecture.setTitle("Lecture 1");
+        lecture.setOrderIndex(1);
+
         Task task = new Task();
+        task.setLecture(lecture);
         task.setTitle("Hello World");
         task.setDescription("Print hello world");
         task.setDifficulty("EASY");

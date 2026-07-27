@@ -131,7 +131,8 @@ class CatalogControllerTest {
     @WithMockUser
     void getLecture_authenticated_returns200WithTaskStubs() throws Exception {
         UUID lectureId = UUID.randomUUID();
-        LectureResponse lecture = new LectureResponse(lectureId, "JUnit 5", "# Content", 1, List.of());
+        LectureResponse lecture =
+                new LectureResponse(lectureId, UUID.randomUUID(), "JUnit 5", "# Content", 1, List.of());
         given(catalogService.getLecture(lectureId)).willReturn(lecture);
 
         mockMvc.perform(get("/api/v1/lectures/" + lectureId))
@@ -161,7 +162,8 @@ class CatalogControllerTest {
     @WithMockUser
     void getTask_authenticated_returns200AndNeverExposesTestCode() throws Exception {
         UUID taskId = UUID.randomUUID();
-        TaskResponse task = new TaskResponse(taskId, "Hello World", "Print hello", "EASY", "// template", 50L);
+        TaskResponse task =
+                new TaskResponse(taskId, UUID.randomUUID(), "Hello World", "Print hello", "EASY", "// template", 50L);
         given(catalogService.getTask(taskId)).willReturn(task);
 
         mockMvc.perform(get("/api/v1/tasks/" + taskId))

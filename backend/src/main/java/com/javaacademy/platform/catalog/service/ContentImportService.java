@@ -22,11 +22,67 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ContentImportService {
 
+    /** Carries both the course ID and the created lecture ID back to the caller. */
+    public record ImportResult(UUID courseId, UUID lectureId) {}
+
     private final CourseRepository courseRepository;
     private final CourseModuleRepository moduleRepository;
     private final LectureRepository lectureRepository;
     private final TaskRepository taskRepository;
     private final Clock clock;
+
+    // ── Primitive builders (used by the curriculum generation loop) ───────────
+
+    /** Creates an empty, unpublished course shell. */
+    @Transactional
+    public UUID createCourse(String technology, String courseName, String description) {
+        Course course = new Course();
+        course.setTitle(courseName);
+        course.setDescription(description);
+        course.setTechnology(technology);
+        course.setPublished(false);
+        course.setCreatedAt(Instant.now(clock));
+        return courseRepository.save(course).getId();
+    }
+
+    /** Creates an empty module inside an existing course. */
+    @Transactional
+    public UUID createModule(UUID courseId, String moduleName, int orderIndex) {
+        Course course = courseRepository
+                .findById(courseId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Course not found: " + courseId));
+        CourseModule module = new CourseModule();
+        module.setCourse(course);
+        module.setTitle(moduleName);
+        module.setOrderIndex(orderIndex);
+        return moduleRepository.save(module).getId();
+    }
+
+    /**
+     * Creates a lecture + first task in an existing module.
+     * Returns both the course ID and the created lecture ID.
+     */
+    @Transactional
+    public ImportResult importLectureAndTask(UUID moduleId, GeneratedContent content) {
+        CourseModule module = moduleRepository
+                .findById(moduleId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Module not found: " + moduleId));
+
+        Lecture lecture = saveLecture(module, content);
+        saveTask(lecture, content);
+        return new ImportResult(module.getCourse().getId(), lecture.getId());
+    }
+
+    /** Adds an extra task to an existing lecture (used for taskCount > 1). */
+    @Transactional
+    public void importAdditionalTask(UUID lectureId, GeneratedContent content) {
+        Lecture lecture = lectureRepository
+                .findById(lectureId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Lecture not found: " + lectureId));
+        saveTask(lecture, content);
+    }
+
+    // ── Legacy composite methods (kept for backward compatibility) ────────────
 
     /**
      * Creates a brand-new unpublished course with one module, lecture, and task.
@@ -88,18 +144,26 @@ public class ContentImportService {
         return module.getCourse().getId();
     }
 
-    private void addLectureAndTask(CourseModule module, GeneratedContent content) {
-        int nextLectureIndex = lectureRepository.findMaxOrderIndexByModuleId(module.getId()) + 1;
+    // ── Private helpers ───────────────────────────────────────────────────────
 
+    private void addLectureAndTask(CourseModule module, GeneratedContent content) {
+        Lecture lecture = saveLecture(module, content);
+        saveTask(lecture, content);
+    }
+
+    private Lecture saveLecture(CourseModule module, GeneratedContent content) {
+        int nextLectureIndex = lectureRepository.findMaxOrderIndexByModuleId(module.getId()) + 1;
         Lecture lecture = new Lecture();
         lecture.setModule(module);
         lecture.setTitle(content.lecture().title());
         lecture.setContentMarkdown(content.lecture().contentMarkdown());
         lecture.setOrderIndex(nextLectureIndex);
-        Lecture savedLecture = lectureRepository.save(lecture);
+        return lectureRepository.save(lecture);
+    }
 
+    private void saveTask(Lecture lecture, GeneratedContent content) {
         Task task = new Task();
-        task.setLecture(savedLecture);
+        task.setLecture(lecture);
         task.setTitle(content.task().title());
         task.setDescription(content.task().description());
         task.setDifficulty(content.task().difficulty().name());

@@ -87,8 +87,10 @@ public class FinOpsService {
         UUID courseId = (UUID) row[0];
         String title = (String) row[1];
         long count = toLong(row[2]);
-        BigDecimal costUsd = (BigDecimal) row[3];
-        return new CourseUsageSummary(courseId, title, count, costUsd);
+        long promptTokens = toLong(row[3]);
+        long completionTokens = toLong(row[4]);
+        BigDecimal costUsd = (BigDecimal) row[5];
+        return new CourseUsageSummary(courseId, title, count, promptTokens, completionTokens, costUsd);
     }
 
     private static long toLong(Object value) {

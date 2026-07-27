@@ -61,6 +61,7 @@ public class CatalogMapper {
     public TaskResponse toTaskResponse(Task task) {
         return new TaskResponse(
                 task.getId(),
+                task.getLecture().getModule().getCourse().getId(),
                 task.getTitle(),
                 task.getDescription(),
                 task.getDifficulty(),

@@ -1,6 +1,7 @@
 package com.javaacademy.platform.ai.service;
 
 import com.javaacademy.platform.ai.client.LlmClient;
+import com.javaacademy.platform.ai.client.LlmException;
 import com.javaacademy.platform.ai.client.LlmRequest;
 import com.javaacademy.platform.ai.client.LlmResponse;
 import com.javaacademy.platform.ai.dto.HintRequest;
@@ -26,21 +27,25 @@ public class SocraticMentorService {
             + "what the compiler or test is expecting? Try reading the error line by line — "
             + "what is the first thing that surprises you about it?";
 
-    private final LlmClient llmClient;
+    private final LlmClient primaryClient;
+    private final LlmClient fallbackClient;
     private final String systemPrompt;
 
     @Autowired
     public SocraticMentorService(
-            @Qualifier("geminiLlmClient") LlmClient llmClient,
+            @Qualifier("geminiLlmClient") LlmClient primaryClient,
+            @Qualifier("anthropicLlmClient") LlmClient fallbackClient,
             @Value("classpath:prompts/socratic-mentor-system.txt") Resource systemPromptResource)
             throws IOException {
-        this.llmClient = llmClient;
+        this.primaryClient = primaryClient;
+        this.fallbackClient = fallbackClient;
         this.systemPrompt = systemPromptResource.getContentAsString(StandardCharsets.UTF_8);
     }
 
     /** Package-private constructor for unit tests — injects the system prompt directly. */
-    SocraticMentorService(LlmClient llmClient, String systemPrompt) {
-        this.llmClient = llmClient;
+    SocraticMentorService(LlmClient primaryClient, String systemPrompt) {
+        this.primaryClient = primaryClient;
+        this.fallbackClient = primaryClient;
         this.systemPrompt = systemPrompt;
     }
 
@@ -86,8 +91,16 @@ public class SocraticMentorService {
 
     private String callLlm(String userPrompt) {
         LlmRequest request = new LlmRequest(null, systemPrompt, userPrompt, MAX_HINT_TOKENS);
-        LlmResponse response = llmClient.complete(request);
-        return response.content();
+        try {
+            LlmResponse response = primaryClient.complete(request);
+            return response.content();
+        } catch (LlmException primaryException) {
+            log.warn(
+                    "Primary LLM (Gemini) failed for hint, falling back to Anthropic: {}",
+                    primaryException.getMessage());
+            LlmResponse response = fallbackClient.complete(request);
+            return response.content();
+        }
     }
 
     private static String appendLeakWarning(String originalPrompt, String leakyHint) {

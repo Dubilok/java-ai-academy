@@ -25,6 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -57,8 +59,15 @@ public class SubmissionService {
         submission.setCreatedAt(clock.instant());
         Submission saved = submissionRepository.save(submission);
 
-        submissionQueue.enqueue(saved.getId());
-        log.debug("Submission {} created for task {} by {}", saved.getId(), taskId, userEmail);
+        // Enqueue only after the transaction commits — the worker needs the row visible in Postgres.
+        UUID savedId = saved.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                submissionQueue.enqueue(savedId);
+            }
+        });
+        log.debug("Submission {} created for task {} by {}", savedId, taskId, userEmail);
         return new SubmitResponse(saved.getId());
     }
 

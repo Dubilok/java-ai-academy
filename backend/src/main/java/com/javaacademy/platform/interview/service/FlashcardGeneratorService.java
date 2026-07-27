@@ -91,14 +91,14 @@ public class FlashcardGeneratorService {
         if (trimmed.startsWith("```")) {
             int start = trimmed.indexOf('\n') + 1;
             int end = trimmed.lastIndexOf("```");
-            trimmed = trimmed.substring(start, end > start ? end : trimmed.length()).strip();
+            trimmed = trimmed.substring(start, end > start ? end : trimmed.length())
+                    .strip();
         }
         try {
             return objectMapper.readValue(trimmed, new TypeReference<List<Map<String, Object>>>() {});
         } catch (Exception parseException) {
             log.error("Failed to parse flashcard JSON from LLM response: {}", trimmed, parseException);
-            throw new ApiException(
-                    HttpStatus.BAD_GATEWAY, "AI returned an invalid response — please try again.");
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "AI returned an invalid response — please try again.");
         }
     }
 
@@ -132,8 +132,8 @@ public class FlashcardGeneratorService {
     }
 
     private static String loadSystemPrompt() {
-        try (InputStream stream = FlashcardGeneratorService.class
-                .getResourceAsStream("/prompts/flashcard-generator-system.txt")) {
+        try (InputStream stream =
+                FlashcardGeneratorService.class.getResourceAsStream("/prompts/flashcard-generator-system.txt")) {
             if (stream == null) {
                 throw new IllegalStateException("flashcard-generator-system.txt not found on classpath");
             }

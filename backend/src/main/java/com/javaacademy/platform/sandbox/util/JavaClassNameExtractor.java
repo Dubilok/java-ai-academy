@@ -9,11 +9,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class JavaClassNameExtractor {
 
-    private static final Pattern PUBLIC_CLASS = Pattern.compile("public\\s+class\\s+(\\w+)");
+    // Matches "public class Foo", "class Foo", "public final class Foo" etc.
+    private static final Pattern ANY_CLASS = Pattern.compile("(?:public\\s+)?(?:final\\s+)?class\\s+(\\w+)");
+    private static final Pattern PUBLIC_CLASS = Pattern.compile("public\\s+(?:final\\s+)?class\\s+(\\w+)");
 
-    /** Returns the first public class name found in the Java source, or empty if none found. */
+    /**
+     * Returns the public class name if one exists, otherwise falls back to the first class name
+     * found. Test classes often omit the public modifier.
+     */
     public static Optional<String> extractPublicClassName(String javaSource) {
-        Matcher matcher = PUBLIC_CLASS.matcher(javaSource);
-        return matcher.find() ? Optional.of(matcher.group(1)) : Optional.empty();
+        Matcher publicMatcher = PUBLIC_CLASS.matcher(javaSource);
+        if (publicMatcher.find()) {
+            return Optional.of(publicMatcher.group(1));
+        }
+        Matcher anyMatcher = ANY_CLASS.matcher(javaSource);
+        return anyMatcher.find() ? Optional.of(anyMatcher.group(1)) : Optional.empty();
     }
 }

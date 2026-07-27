@@ -5,4 +5,11 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 public record GenerationJobResponse(
-        UUID jobId, String technology, JobStatus status, @Nullable UUID courseId, @Nullable String errorMessage) {}
+        UUID jobId,
+        String technology,
+        JobStatus status,
+        int totalItems,
+        int completedItems,
+        @Nullable String currentItem,
+        @Nullable UUID courseId,
+        @Nullable String errorMessage) {}

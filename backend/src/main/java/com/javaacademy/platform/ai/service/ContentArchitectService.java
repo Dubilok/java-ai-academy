@@ -141,7 +141,7 @@ public class ContentArchitectService {
             long startMs,
             int accumulatedPromptTokens,
             int accumulatedCompletionTokens) {
-        LlmRequest request = new LlmRequest(null, systemPrompt, userPrompt, 4096);
+        LlmRequest request = new LlmRequest(null, systemPrompt, userPrompt, 8192);
         LlmResponse response = llmClient.complete(request);
         int newPromptTokens = accumulatedPromptTokens + response.promptTokens();
         int newCompletionTokens = accumulatedCompletionTokens + response.completionTokens();

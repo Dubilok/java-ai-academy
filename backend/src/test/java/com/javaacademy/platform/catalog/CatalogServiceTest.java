@@ -9,6 +9,7 @@ import com.javaacademy.platform.catalog.dto.LectureResponse;
 import com.javaacademy.platform.catalog.dto.PagedResponse;
 import com.javaacademy.platform.catalog.dto.TaskResponse;
 import com.javaacademy.platform.catalog.entity.Course;
+import com.javaacademy.platform.catalog.entity.CourseModule;
 import com.javaacademy.platform.catalog.entity.Lecture;
 import com.javaacademy.platform.catalog.entity.Task;
 import com.javaacademy.platform.catalog.repository.CourseModuleRepository;
@@ -228,7 +229,18 @@ class CatalogServiceTest {
     }
 
     private Lecture lecture(String title) {
+        Course course = new Course();
+        course.setTitle("Java Fundamentals");
+        course.setTechnology("Java");
+        course.setPublished(true);
+
+        CourseModule module = new CourseModule();
+        module.setCourse(course);
+        module.setTitle("Module 1");
+        module.setOrderIndex(1);
+
         Lecture lecture = new Lecture();
+        lecture.setModule(module);
         lecture.setTitle(title);
         lecture.setContentMarkdown("# Content");
         lecture.setOrderIndex(1);
@@ -236,7 +248,23 @@ class CatalogServiceTest {
     }
 
     private Task task(String title) {
+        Course course = new Course();
+        course.setTitle("Java Fundamentals");
+        course.setTechnology("Java");
+        course.setPublished(true);
+
+        CourseModule module = new CourseModule();
+        module.setCourse(course);
+        module.setTitle("Module 1");
+        module.setOrderIndex(1);
+
+        Lecture lecture = new Lecture();
+        lecture.setModule(module);
+        lecture.setTitle("Lecture 1");
+        lecture.setOrderIndex(1);
+
         Task task = new Task();
+        task.setLecture(lecture);
         task.setTitle(title);
         task.setDescription("A description");
         task.setDifficulty("EASY");

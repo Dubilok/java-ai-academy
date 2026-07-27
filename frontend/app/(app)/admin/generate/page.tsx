@@ -10,6 +10,7 @@ import {
   generateCourse,
 } from "@/lib/queries/admin";
 import type { AiUsageResponse, JobStatus } from "@/lib/schemas/admin";
+import { JobsPanel } from "@/components/jobs-panel";
 
 type GenerateMode = "new-course" | "new-module" | "existing-module";
 
@@ -29,6 +30,7 @@ function formatMs(ms: number | null): string {
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
 }
+
 
 export default function GeneratePage() {
   const queryClient = useQueryClient();
@@ -65,7 +67,7 @@ export default function GeneratePage() {
     enabled: jobId !== null,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      return status === "DONE" || status === "FAILED" ? false : 3_000;
+      return status === "SUCCEEDED" || status === "FAILED" ? false : 3_000;
     },
   });
 
@@ -99,7 +101,7 @@ export default function GeneratePage() {
     }
   }
 
-  const jobDone = jobStatus?.status === "DONE" || jobStatus?.status === "FAILED";
+  const jobDone = jobStatus?.status === "SUCCEEDED" || jobStatus?.status === "FAILED";
 
   const inputClass =
     "rounded-lg border border-white/10 bg-bg-base px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue";
@@ -191,7 +193,7 @@ export default function GeneratePage() {
               <span className="text-sm font-medium text-text-primary">Job: {jobStatus.technology}</span>
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                  jobStatus.status === "DONE"
+                  jobStatus.status === "SUCCEEDED"
                     ? "bg-success/20 text-success"
                     : jobStatus.status === "FAILED"
                     ? "bg-error/20 text-error"
@@ -202,13 +204,13 @@ export default function GeneratePage() {
                 {jobStatus.status}
               </span>
             </div>
-            <p className="mt-1 text-xs text-text-muted">Attempts: {jobStatus.attempts} / 3</p>
-            {jobStatus.log.length > 0 && (
-              <ul className="mt-2 space-y-1">
-                {jobStatus.log.map((entry, index) => (
-                  <li key={index} className="font-mono text-xs text-text-muted">{entry}</li>
-                ))}
-              </ul>
+            {jobStatus.currentItem && (
+              <p className="mt-1 text-xs text-text-muted">Generating: {jobStatus.currentItem}</p>
+            )}
+            {jobStatus.totalItems > 0 && (
+              <p className="mt-1 text-xs text-text-muted">
+                {jobStatus.completedItems} / {jobStatus.totalItems} items
+              </p>
             )}
             {jobDone && jobStatus.courseId && (
               <a href={`/courses/${jobStatus.courseId}`} className="mt-3 inline-block text-sm text-accent-blue hover:underline">
@@ -218,6 +220,8 @@ export default function GeneratePage() {
           </div>
         )}
       </section>
+
+      <JobsPanel />
 
       <section>
         <div className="mb-4 flex items-center justify-between">

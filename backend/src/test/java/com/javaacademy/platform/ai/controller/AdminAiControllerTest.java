@@ -1,6 +1,6 @@
 package com.javaacademy.platform.ai.controller;
 
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -52,6 +52,9 @@ class AdminAiControllerTest {
     @MockBean
     JwtService jwtService;
 
+    @MockBean
+    com.javaacademy.platform.catalog.service.CatalogService catalogService;
+
     // ── POST /admin/ai/generate-course ─────────────────────────────────────────
 
     @Test
@@ -75,7 +78,7 @@ class AdminAiControllerTest {
     @WithMockUser(roles = "ADMIN")
     void startGeneration_adminRole_returns202WithJobId() throws Exception {
         UUID jobId = UUID.randomUUID();
-        given(generationJobService.startJob(eq("Java Records"))).willReturn(jobId);
+        given(generationJobService.startJob(any())).willReturn(jobId);
 
         mockMvc.perform(post("/api/v1/admin/ai/generate-course")
                         .contentType(MediaType.APPLICATION_JSON)

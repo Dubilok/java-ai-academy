@@ -230,7 +230,13 @@ class InterviewSessionControllerTest {
     void getSession_finishedSession_returns200WithReport() throws Exception {
         EvaluationReport report = stubbedReport(SESSION_ID, 88);
         SessionDetailResponse response = new SessionDetailResponse(
-                SESSION_ID, "Java", InterviewSessionStatus.FINISHED, 88, report, null, Instant.parse("2026-07-25T10:00:00Z"));
+                SESSION_ID,
+                "Java",
+                InterviewSessionStatus.FINISHED,
+                88,
+                report,
+                null,
+                Instant.parse("2026-07-25T10:00:00Z"));
         when(sessionService.getSession(eq(SESSION_ID), any())).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/interview/sessions/{id}", SESSION_ID))

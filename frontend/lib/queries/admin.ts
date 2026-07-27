@@ -3,12 +3,16 @@ import {
   AdminCourseSchema,
   AdminModuleSchema,
   AiUsageResponseSchema,
-  GenerateCourseResponseSchema,
+  CurriculumProposalSchema,
   JobStatusSchema,
+  ProposeLecturesResponseSchema,
+  ProposeModulesResponseSchema,
   type AdminCourse,
   type AdminModule,
   type AiUsageResponse,
+  type CurriculumProposal,
   type JobStatus,
+  type ModuleProposal,
 } from "@/lib/schemas/admin";
 import { InterviewQuestionsResponseSchema, type InterviewQuestion } from "@/lib/schemas/interview";
 import { z } from "zod";
@@ -28,15 +32,53 @@ export async function fetchAdminModules(courseId: string): Promise<AdminModule[]
   return z.array(AdminModuleSchema).parse(response.data);
 }
 
+export async function proposeCurriculum(technology: string): Promise<CurriculumProposal> {
+  const response = await api.post("/admin/ai/propose-curriculum", { technology });
+  return CurriculumProposalSchema.parse(response.data);
+}
+
+export async function proposeMoreModules(
+  technology: string,
+  existingModules: string[]
+): Promise<ModuleProposal[]> {
+  const response = await api.post("/admin/ai/propose-modules", { technology, existingModules });
+  return ProposeModulesResponseSchema.parse(response.data).modules;
+}
+
+export async function proposeMoreLectures(
+  technology: string,
+  moduleName: string,
+  existingLectures: string[]
+): Promise<string[]> {
+  const response = await api.post("/admin/ai/propose-lectures", {
+    technology,
+    moduleName,
+    existingLectures,
+  });
+  return ProposeLecturesResponseSchema.parse(response.data).lectureTopics;
+}
+
 export async function generateCourse(payload: {
   technology: string;
   courseId?: string;
   moduleId?: string;
   moduleName?: string;
+  curriculum?: {
+    courseName: string;
+    description: string;
+    modules: Array<{
+      moduleName: string;
+      lectures: Array<{ lectureTitle: string; taskCount: number }>;
+    }>;
+  };
 }): Promise<string> {
   const response = await api.post("/admin/ai/generate-course", payload);
-  const parsed = GenerateCourseResponseSchema.parse(response.data);
-  return parsed.jobId;
+  return z.object({ jobId: z.string() }).parse(response.data).jobId;
+}
+
+export async function fetchAllJobs(): Promise<JobStatus[]> {
+  const response = await api.get("/admin/ai/jobs");
+  return z.array(JobStatusSchema).parse(response.data);
 }
 
 export async function fetchJobStatus(jobId: string): Promise<JobStatus> {

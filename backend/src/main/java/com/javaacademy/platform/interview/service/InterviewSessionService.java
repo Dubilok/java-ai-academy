@@ -188,9 +188,8 @@ public class InterviewSessionService {
         if (session.getReportJson() != null) {
             report = deserializeReport(session.getReportJson());
         }
-        QuestionInSession currentQuestion = session.getCurrentQuestion() != null
-                ? toQuestionInSession(session.getCurrentQuestion())
-                : null;
+        QuestionInSession currentQuestion =
+                session.getCurrentQuestion() != null ? toQuestionInSession(session.getCurrentQuestion()) : null;
         return new SessionDetailResponse(
                 session.getId(),
                 session.getTechnology(),

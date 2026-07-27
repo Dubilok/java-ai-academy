@@ -54,11 +54,13 @@ public interface AiGenerationLogRepository extends JpaRepository<AiGenerationLog
             nativeQuery = true)
     List<Object[]> findByUser(@Param("from") Instant from, @Param("to") Instant to);
 
-    /** Per-course breakdown (only rows with a non-null courseId): courseId, title, count, cost. */
+    /** Per-course breakdown: courseId, title, count, promptTokens, completionTokens, cost. */
     @Query(
             value =
                     """
-                    SELECT l.course_id, c.title, COUNT(l.id), SUM(l.cost_usd)
+                    SELECT l.course_id, c.title, COUNT(l.id),
+                           COALESCE(SUM(l.prompt_tokens), 0), COALESCE(SUM(l.completion_tokens), 0),
+                           SUM(l.cost_usd)
                     FROM ai_generation_log l
                     JOIN courses c ON c.id = l.course_id
                     WHERE l.course_id IS NOT NULL
