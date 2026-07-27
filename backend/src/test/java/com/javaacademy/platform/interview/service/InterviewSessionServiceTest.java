@@ -323,6 +323,8 @@ class InterviewSessionServiceTest {
         assertThat(response.status()).isEqualTo(InterviewSessionStatus.ACTIVE);
         assertThat(response.score()).isNull();
         assertThat(response.report()).isNull();
+        assertThat(response.currentQuestion()).isNotNull();
+        assertThat(response.currentQuestion().questionText()).isEqualTo(question1.getQuestion());
     }
 
     @Test

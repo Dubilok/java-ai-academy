@@ -1,104 +1,125 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState } from "react";
 import { Flashcard } from "@/components/flashcard";
 import { fetchFlashcards } from "@/lib/queries/interview";
+import type { InterviewQuestion } from "@/lib/schemas/interview";
 
 const DIFFICULTIES = ["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"] as const;
 
-export default function InterviewFlashcardsPage() {
-  const [technology, setTechnology] = useState("");
-  const [difficulty, setDifficulty] = useState("");
-  const [cardIndex, setCardIndex] = useState(0);
-
-  const { data: cards = [], isLoading, isError } = useQuery({
-    queryKey: ["flashcards", technology, difficulty],
-    queryFn: () =>
-      fetchFlashcards({
-        technology: technology || undefined,
-        difficulty: difficulty || undefined,
-      }),
-  });
-
-  const currentCard = cards[cardIndex];
-
-  function goNext() {
-    setCardIndex((i) => Math.min(i + 1, cards.length - 1));
+function groupByTechnology(cards: InterviewQuestion[]): [string, InterviewQuestion[]][] {
+  const map = new Map<string, InterviewQuestion[]>();
+  for (const card of cards) {
+    const group = map.get(card.technology) ?? [];
+    group.push(card);
+    map.set(card.technology, group);
   }
+  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+}
 
-  function goPrev() {
-    setCardIndex((i) => Math.max(i - 1, 0));
-  }
+function TopicGroup({ technology, cards }: { technology: string; cards: InterviewQuestion[] }) {
+  const [index, setIndex] = useState(0);
+  const current = cards[index];
 
   return (
-    <div className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-2 text-2xl font-bold text-text-primary">Flashcards</h1>
-      <p className="mb-6 text-text-muted">Click a card to reveal the answer.</p>
+    <section className="rounded-2xl border border-white/10 bg-bg-card p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-base font-semibold text-text-primary">{technology}</h2>
+        <span className="text-xs text-text-muted">
+          {index + 1} / {cards.length}
+        </span>
+      </div>
 
-      <div className="mb-6 flex flex-wrap gap-3">
-        <input
-          type="text"
-          placeholder="Technology (e.g. Java)"
-          value={technology}
-          onChange={(e) => { setTechnology(e.target.value); setCardIndex(0); }}
-          className="rounded-lg border border-white/10 bg-bg-card px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue"
-        />
-        <select
-          value={difficulty}
-          onChange={(e) => { setDifficulty(e.target.value); setCardIndex(0); }}
-          className="rounded-lg border border-white/10 bg-bg-card px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-blue"
-          aria-label="Filter by difficulty"
+      {current && <Flashcard key={current.id} question={current} />}
+
+      <div className="mt-4 flex justify-between">
+        <button
+          onClick={() => setIndex((i) => Math.max(i - 1, 0))}
+          disabled={index === 0}
+          className="rounded-lg border border-white/10 px-4 py-2 text-sm text-text-muted hover:border-accent-blue hover:text-accent-blue disabled:opacity-30"
+          aria-label="Previous card"
         >
-          <option value="">All difficulties</option>
-          {DIFFICULTIES.map((d) => (
-            <option key={d} value={d}>
-              {d.charAt(0) + d.slice(1).toLowerCase()}
-            </option>
-          ))}
-        </select>
+          ← Prev
+        </button>
+        <button
+          onClick={() => setIndex((i) => Math.min(i + 1, cards.length - 1))}
+          disabled={index >= cards.length - 1}
+          className="rounded-lg border border-white/10 px-4 py-2 text-sm text-text-muted hover:border-accent-blue hover:text-accent-blue disabled:opacity-30"
+          aria-label="Next card"
+        >
+          Next →
+        </button>
+      </div>
+    </section>
+  );
+}
+
+export default function InterviewFlashcardsPage() {
+  const [difficulty, setDifficulty] = useState("");
+
+  const { data: cards = [], isLoading, isError } = useQuery({
+    queryKey: ["flashcards", difficulty],
+    queryFn: () => fetchFlashcards({ difficulty: difficulty || undefined }),
+  });
+
+  const groups = groupByTechnology(cards);
+
+  return (
+    <div className="mx-auto max-w-3xl px-8 py-10">
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Flashcards</h1>
+          <p className="mt-1 text-sm text-text-muted">Click a card to reveal the answer.</p>
+        </div>
+        <Link
+          href="/interview/sessions"
+          className="rounded-lg border border-white/10 px-4 py-2 text-sm text-text-muted hover:border-accent-blue hover:text-text-primary"
+        >
+          Mock interview →
+        </Link>
+      </div>
+
+      {/* Difficulty filter */}
+      <div className="mb-8 flex flex-wrap gap-2">
+        <button
+          onClick={() => setDifficulty("")}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+            difficulty === ""
+              ? "bg-white/10 text-text-primary"
+              : "text-text-muted hover:text-text-primary"
+          }`}
+        >
+          All
+        </button>
+        {DIFFICULTIES.map((d) => (
+          <button
+            key={d}
+            onClick={() => setDifficulty(difficulty === d ? "" : d)}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              difficulty === d
+                ? "bg-white/10 text-text-primary"
+                : "text-text-muted hover:text-text-primary"
+            }`}
+          >
+            {d.charAt(0) + d.slice(1).toLowerCase()}
+          </button>
+        ))}
       </div>
 
       {isLoading && <p className="text-text-muted">Loading flashcards…</p>}
       {isError && <p className="text-error">Failed to load flashcards.</p>}
 
       {!isLoading && !isError && cards.length === 0 && (
-        <p className="text-text-muted">No flashcards found for the selected filters.</p>
+        <p className="text-text-muted">No flashcards found.</p>
       )}
 
-      {!isLoading && currentCard && (
-        <>
-          <div className="mb-4 flex items-center justify-between text-sm text-text-muted">
-            <span>
-              {cardIndex + 1} of {cards.length}
-            </span>
-            <a href="/interview/sessions" className="text-accent-blue hover:underline">
-              Start a mock interview →
-            </a>
-          </div>
-
-          <Flashcard key={currentCard.id} question={currentCard} />
-
-          <div className="mt-4 flex justify-between">
-            <button
-              onClick={goPrev}
-              disabled={cardIndex === 0}
-              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-text-muted hover:border-accent-blue hover:text-accent-blue disabled:opacity-30"
-              aria-label="Previous card"
-            >
-              ← Previous
-            </button>
-            <button
-              onClick={goNext}
-              disabled={cardIndex >= cards.length - 1}
-              className="rounded-lg border border-white/10 px-4 py-2 text-sm text-text-muted hover:border-accent-blue hover:text-accent-blue disabled:opacity-30"
-              aria-label="Next card"
-            >
-              Next →
-            </button>
-          </div>
-        </>
-      )}
+      <div className="flex flex-col gap-6">
+        {groups.map(([technology, groupCards]) => (
+          <TopicGroup key={technology} technology={technology} cards={groupCards} />
+        ))}
+      </div>
     </div>
   );
 }

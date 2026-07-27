@@ -10,6 +10,7 @@ import {
   type AiUsageResponse,
   type JobStatus,
 } from "@/lib/schemas/admin";
+import { InterviewQuestionsResponseSchema, type InterviewQuestion } from "@/lib/schemas/interview";
 import { z } from "zod";
 
 export async function fetchAiUsage(): Promise<AiUsageResponse> {
@@ -45,4 +46,25 @@ export async function fetchJobStatus(jobId: string): Promise<JobStatus> {
 
 export async function publishCourse(courseId: string): Promise<void> {
   await api.post(`/admin/courses/${courseId}/publish`);
+}
+
+export async function fetchAllFlashcards(): Promise<InterviewQuestion[]> {
+  const response = await api.get("/interview/questions");
+  return InterviewQuestionsResponseSchema.parse(response.data);
+}
+
+export async function createFlashcard(payload: {
+  technology: string;
+  category: string;
+  question: string;
+  shortAnswer: string;
+  detailedExplanation?: string;
+  difficulty: string;
+}): Promise<InterviewQuestion> {
+  const response = await api.post("/admin/interview/questions", payload);
+  return response.data as InterviewQuestion;
+}
+
+export async function deleteFlashcard(id: string): Promise<void> {
+  await api.delete(`/admin/interview/questions/${id}`);
 }

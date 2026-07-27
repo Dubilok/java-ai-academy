@@ -11,4 +11,5 @@ public record SessionDetailResponse(
         InterviewSessionStatus status,
         @Nullable Integer score,
         @Nullable EvaluationReport report,
+        @Nullable QuestionInSession currentQuestion,
         Instant createdAt) {}
