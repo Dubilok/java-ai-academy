@@ -76,7 +76,13 @@ export default function CourseDetailPage({ params }: { params: { courseId: strin
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-8">
+    <div className="mx-auto max-w-5xl px-8 py-10">
+      <nav className="mb-6 flex items-center gap-2 text-xs text-text-muted" aria-label="Breadcrumb">
+        <Link href="/dashboard" className="hover:text-text-primary">Dashboard</Link>
+        <span>/</span>
+        <span className="text-text-primary">{course.title}</span>
+      </nav>
+
       <div className="mb-8">
         <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
           {course.technology}
