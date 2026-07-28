@@ -27,8 +27,28 @@ export const StartSessionResponseSchema = z.object({
   sessionId: z.string().uuid(),
   technology: z.string(),
   status: z.enum(["ACTIVE", "FINISHED"]),
-  firstQuestion: QuestionInSessionSchema,
+  mode: z.enum(["TEXT", "VOICE"]).optional(),
+  firstQuestion: QuestionInSessionSchema.nullable().optional(),
+  firstVoiceQuestion: z.string().nullable().optional(),
 });
+
+// --- Voice interview schemas ---
+
+export const TurnAssessmentSchema = z.object({
+  topicCovered: z.string(),
+  strength: z.enum(["STRONG", "ADEQUATE", "WEAK"]),
+  note: z.string(),
+});
+
+export const TurnResultSchema = z.object({
+  question: z.string(),
+  topicMap: z.record(z.string(), z.boolean()),
+  turnAssessment: TurnAssessmentSchema.nullable().optional(),
+  isFinalTurn: z.boolean(),
+});
+
+export type TurnAssessment = z.infer<typeof TurnAssessmentSchema>;
+export type TurnResult = z.infer<typeof TurnResultSchema>;
 
 export const SubmitAnswerResponseSchema = z.object({
   sessionId: z.string().uuid(),

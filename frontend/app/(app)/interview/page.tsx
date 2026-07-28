@@ -121,12 +121,20 @@ export default function InterviewFlashcardsPage() {
             </p>
           )}
         </div>
-        <Link
-          href="/interview/sessions"
-          className="shrink-0 rounded-lg bg-accent-java px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-        >
-          Mock interview →
-        </Link>
+        <div className="flex shrink-0 gap-2">
+          <Link
+            href="/interview/voice"
+            className="rounded-lg border border-accent-blue px-4 py-2 text-sm font-semibold text-accent-blue transition-opacity hover:opacity-90"
+          >
+            Voice interview →
+          </Link>
+          <Link
+            href="/interview/sessions"
+            className="rounded-lg bg-accent-java px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            Mock interview →
+          </Link>
+        </div>
       </div>
 
       {/* Loading */}
