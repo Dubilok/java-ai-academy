@@ -79,6 +79,9 @@ class SecurityFilterChainTest {
     @MockBean
     com.javaacademy.platform.interview.service.FlashcardGeneratorService flashcardGeneratorService;
 
+    @MockBean
+    com.javaacademy.platform.interview.service.VoiceInterviewService voiceInterviewService;
+
     // ── public paths ───────────────────────────────────────────────────────────
 
     @Test

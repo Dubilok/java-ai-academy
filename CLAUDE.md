@@ -4,7 +4,7 @@
 > It is Claude's persistent memory across sessions. Read it fully before doing any work.
 > Every completed task, decision, and blocker is recorded here — not in chat history.
 
-**Status:** E12-T6 complete · **Last updated:** 2026-07-28 · **Doc version:** 1.0
+**Status:** E12-T7 complete · **Last updated:** 2026-07-28 · **Doc version:** 1.0
 
 ---
 
@@ -609,7 +609,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked (s
 - [x] E12-T4 System prompt `resources/prompts/voice-interviewer-system.txt` — 1 Q/turn, reference candidate's words, JSON-only output, final synthesis question, per-spec rules
 - [x] E12-T5 `VoiceInterviewOrchestrator`: `generateOpeningQuestion(technology, maxTurns)` + `generateNextQuestion(session, transcript, turnIndex)` → `TurnResult`; builds conversation history; calls Haiku; parses TurnResult JSON; persists `VoiceInterviewQuestion` + updates `topicMapJson`; unit tests (first Q, topic map update, final turn flag at maxTurns)
 - [x] E12-T6 `InterviewSessionService` — branch on `mode` in `startSession` (VOICE → call orchestrator) + `finishSession` (VOICE → build dynamic transcript for `MockInterviewerService.evaluate()`); update existing unit tests
-- [ ] E12-T7 `VoiceInterviewController` — `POST /sessions/{id}/voice-answers` returns `SseEmitter`; streams `{"type":"token","value":"..."}` events followed by `{"type":"done",...}` event; `@WebMvcTest` slice tests (201 start VOICE, SSE token+done stream, 404, 409 already finished)
+- [x] E12-T7 `VoiceInterviewController` — `POST /sessions/{id}/voice-answers` returns `SseEmitter`; streams `{"type":"token","value":"..."}` events followed by `{"type":"done",...}` event; `@WebMvcTest` slice tests (201 start VOICE, SSE token+done stream, 404, 409 already finished)
 - [ ] E12-T8 Frontend hooks: `useVoiceSynthesizer` (wraps `SpeechSynthesisUtterance`, sentence-boundary TTS trigger) + `useSpeechRecorder` (wraps `SpeechRecognition`, 2s silence detection, text-input fallback when API unavailable)
 - [ ] E12-T9 Frontend components: `TopicMapPanel` (live topic coverage sidebar), `InterviewerBubble` (streams tokens, triggers TTS on sentence boundary), `TranscriptBubble` (live interim transcript with `aria-live`)
 - [ ] E12-T10 `/interview/voice` page — state machine IDLE→INTERVIEWER_SPEAKING→LISTENING→PROCESSING→loop; wires hooks + components; handles SSE stream for next question; keyboard-accessible; timer display
@@ -802,6 +802,7 @@ cd ide-plugin
 | 2026-07-28 | E12-T4 | ✅ | `voice-interviewer-system.txt` prompt: JSON-only TurnResult output; opening-turn format omits turnAssessment; 5–8 topic map with false→true progression; STRONG/ADEQUATE/WEAK strength rubric; final turn when all topics covered or maxTurns-1 reached; prompt-injection guards on HISTORY/CANDIDATE_ANSWER blocks; no hint/answer rules |
 | 2026-07-28 | E12-T5 | ✅ | `VoiceInterviewOrchestrator` @Service: `generateOpeningQuestion` (turn 0, no assessment) + `generateNextQuestion` (build HISTORY + CANDIDATE_ANSWER prompt, parse TurnResult JSON, persist VoiceInterviewQuestion, update topicMapJson); uses `effectiveGenerationModel()` (Haiku); `extractJson` strips prose prefix; prompt-injection-safe delimiter blocks; SpotBugs CT_CONSTRUCTOR_THROW excluded; 7 unit tests (VoiceInterviewOrchestratorTest) covering first Q, persist call, topic map update, final-turn flag, history inclusion, invalid JSON, missing question field; build green |
 | 2026-07-28 | E12-T6 | ✅ | `InterviewSessionService` branches on `InterviewMode`: TEXT path unchanged; VOICE path skips question lookup, saves session, calls `voiceOrchestrator.generateOpeningQuestion` → returns `firstVoiceQuestion`; `finishSession` uses `findBySessionIdWithVoiceQuestionOrderByCreatedAt` for VOICE mode; `MockInterviewerService.buildTranscript` handles nullable `question`/`voiceQuestion` + `transcript` fallback; 2 new unit tests (voice mode calls orchestrator, voice mode never queries question repo); 583 tests pass |
+| 2026-07-28 | E12-T7 | ✅ | `VoiceInterviewService.submitVoiceAnswer`: validates VOICE/ACTIVE session, saves `InterviewAnswer` (isDynamic=true, voiceQuestion FK, transcript), calls orchestrator for next question, updates `totalTurns`; `VoiceInterviewController` `POST /sessions/{id}/voice-answers` → `SseEmitter` on virtual thread; streams question word-by-word as `token` events then `done` event with full `TurnResult`; errors streamed as `error` event; `VoiceInterviewQuestionRepository.findBySessionIdAndTurnIndex` added; `SecurityFilterChainTest` updated; 4 `@WebMvcTest` slice tests (401, SSE started, error-on-404, 400 blank transcript); 587 tests pass |
 
 ---
 

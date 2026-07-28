@@ -2,6 +2,7 @@ package com.javaacademy.platform.interview.repository;
 
 import com.javaacademy.platform.interview.entity.VoiceInterviewQuestion;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -11,4 +12,8 @@ public interface VoiceInterviewQuestionRepository extends JpaRepository<VoiceInt
 
     @Query("SELECT v FROM VoiceInterviewQuestion v WHERE v.session.id = :sessionId ORDER BY v.turnIndex ASC")
     List<VoiceInterviewQuestion> findBySessionIdOrderByTurnIndex(@Param("sessionId") UUID sessionId);
+
+    @Query("SELECT v FROM VoiceInterviewQuestion v WHERE v.session.id = :sessionId AND v.turnIndex = :turnIndex")
+    Optional<VoiceInterviewQuestion> findBySessionIdAndTurnIndex(
+            @Param("sessionId") UUID sessionId, @Param("turnIndex") int turnIndex);
 }
